@@ -57,7 +57,8 @@ void setup() {
 int[8] arcades;
 int[8] arcadepins;
 
-unsigned long[4] voices;
+unsigned long[4] voicetimes;
+int[4] voicenotes;
 
 int octave=3;
 int mode=MONOMODE;
@@ -223,38 +224,71 @@ void killMNote() {
 
 void handlePNotes(inputs) {
   bool keepplaying = false;
-  int new_note = -1;
+  int this_note = -1;
   int howmanyheld = 0;
+  int noteindex = 0;
   unsigned long time = millis();
 
+  // for octave change
   while(howmanyheld<4){
 
     // go through inputs
     for(int q=0; q<8; q++){
 
+      this_note = inputToNote(octave,q);
+
+      // if button down - if no longer down, voice will play out its length until replaced
       if( inputs[q] == HIGH ){
 
+        // are we already playing this note?
         for(int i=0; i<4; i++){
 
-          if( ( time - voices[i] ) >= 300){
-            
-
-            // set to new time for new note
-            voices[i] = time;
-
-
-
-            // voice is available because 
+          if(voicenotes[i]==this_note){
+            keepplaying = true;
+            noteindex = i;
           }
         }
+
+        if(keepplaying){
+          
+          // wait for retrigger if held
+          if( ( time - voicetimes[i] ) >= 300){
+            // set to new time for new note
+            voicetimes[noteindex] = time;
+            // retrigger
+            playPNote(this_note, i);
+          }
+
+        } else {
+          // choose random voice to overwrite
+          noteindex = random(0,3);
+          voicetimes[noteindex] = time;
+          voicenotes[noteindex] = this_note;
+          playPNote(this_note, noteindex);
+        }
+
+      } else {
+
+        // clean up note timer for (no longer held) note
+        // note will play out on its own
+        for(int i=0; i<4; i++){
+
+          if(voicenotes[i]==this_note){
+
+            if( ( time - voicetimes[i] ) >= 300){
+              voicenotes[i] = -1;
+              voicetimes[i] = -1;
+            }
+
+          }
+        }
+        
       }
-      
+
+      // reset for next input check
+      keepplaying = false;
     }
-    
   }
-  
-
-
 
   // exit if too many inputs
   while(howmanyheld<2){
@@ -277,10 +311,8 @@ void handlePNotes(inputs) {
   }
 }
 
-void playPNotes(notes) {
-  for(int i=0; i<4; i++){
-    soul.mTrigger(i,note);
-  } 
+void playPNote(note, voice) {
+  soul.mTrigger(voice,note);
 }
 
 //////////// LIGHTS /////////
