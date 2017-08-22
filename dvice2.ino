@@ -21,6 +21,8 @@
 #define ARCADE6 7
 #define ARCADE7 8
 
+#define MODEPIN 12
+
 #define MONOMODE 0
 #define POLYMODE 1
 #define THERMODE 2
@@ -31,24 +33,29 @@ Adafruit_DotStar rgbsquare = Adafruit_DotStar(NUMPIXELS, DATAPIN, CLOCKPIN, DOTS
 // Thermal
 Adafruit_AMG88xx amg;
 
-// synth
+// ze synth
 synth soul;
 
-
+//////////////////GLOBALS/////////////////
 int arcades [8] {-1,-1,-1,-1,-1,-1,-1,-1};
 int arcadepins [8] {ARCADE0,ARCADE1,ARCADE2,ARCADE3,ARCADE4,ARCADE5,ARCADE6,ARCADE7};
 
+// poly voice timeouts
 unsigned long voicetimes [4];
 int voicenotes [4];
 
-int octave=12;
-int mode=MONOMODE;
-int note_playing=0;
+uint8_t octave=12;
+uint8_t mode=MONOMODE;
 
 unsigned long timer;
 unsigned long time_oct;
+unsigned long time_mod;
 
 float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
+
+bool modechanged = false;
+
+///////////////////////////////////////////
 
 void setup() {
   Serial.begin(9600);
@@ -70,9 +77,13 @@ void setup() {
   pinMode( ARCADE6, INPUT_PULLUP );
   pinMode( ARCADE7, INPUT_PULLUP );
 
+  // mode
+  pinMode( MODEPIN, INPUT_PULLUP );
+
   // RGB object
-  // rgbsquare.begin(); // Initialize pins for output
-  // rgbsquare.show();  // Turn all LEDs off ASAP
+  rgbsquare.begin(); // Initialize pins for output
+  rgbsquare.show();  // Turn all LEDs off ASAP
+  rgbsquare.setBrightness(100);  // lower max brightness
 
   // start synth instance
   soul.begin(DIFF);
@@ -90,7 +101,6 @@ void setup() {
   for(int i=0; i<4;i++){
     voicetimes[i]=millis();
     voicenotes[i]=-2;
-
   }
  
   // main timer
@@ -121,16 +131,61 @@ void loop() {
 
     // }
 
-  monoMode();
+  modechanged = checkMode();
 
-  // read 
+  // setup my shit breh
+  if(modechanged){
+    if(mode == MONOMODE){
 
+    } else if(mode == POLYMODE){
+
+    } else {
+
+    }
+
+  }
+
+  // do my mode boy
+  switch(mode){
+    case 0: monoMode();
+            break;
+    case 1: polyMode();
+            break;
+    case 2: thermalMode();
+            break;            
+  }
 
 }
 
-//////////////////GLOBALS/////////////////
+//////////////////MODE CHECKS/////////////////
+bool checkMode(){
+  if( (time - time_mod) >= 1000 ){
+    // rgb button
+    if(digitalRead(MODEPIN) == LOW){
+      // increment mode...
+      mode++;
 
+      if(mode>2){
+        mode = 0;
+      }
 
+      time_mod = time;
+      return true;
+    }
+  } else {
+    return false;
+  }
+}
+
+void modeLights(){
+  switch(mode){
+    case 0: //something;
+            break;
+    case 1: break;
+    
+    case 2: break;
+  }
+}
 
 
 ////////// MODES //////////////
@@ -160,7 +215,9 @@ void monoMode() {
   // set modulation (thermal or whateva)
 
   // light lights
-  // lightRGB(thermal, tex);
+  if( (time-time_rgb) >= 500 ){
+    lightRGB(tex);
+  }
 
   // cleanup?
 }
@@ -197,12 +254,18 @@ void polyMode() {
   getThermal();
 
   // light lights
-  lightRGB(tex);
-
+  if( (time-time_rgb) >= 500 ){
+    lightRGB(tex);
+  }
 }
 
-
 void thermalMode() {
+  // wtf!
+  getThermal();
+
+  for(uint8_t i=0; i<NUMPIXELS; i++){
+    thermal[i]
+  }
 
 }
 
@@ -259,7 +322,6 @@ void handleMNotes() {
         // set to new time for new note
       voicetimes[0] = time;
       // retrigger
-
       playMNote(new_note);
     }
 
@@ -268,14 +330,13 @@ void handleMNotes() {
     playMNote(new_note);
     voicenotes[0] = new_note;
     voicetimes[0] = time;
-
-  } else if( ( time - voicetimes[0] ) >= 6000) {
+ 
+  } else if( voicetimes[0] > 0 && ( time - voicetimes[0] ) >= 6000) {
     Serial.println("kill note tiemrs");
-    voicetimes[0] = 0;
+    voicetimes[0] = -1;
     voicenotes[0] = -2;
     digitalWrite(13, LOW);
     // killMNote();
-
   }
 
   // change octave
@@ -287,7 +348,6 @@ void handleMNotes() {
         octave += 1;
         time_oct = time;
       }
-
 
     } else if(bottom == 4 ) {
       // if down (4-7)
@@ -308,7 +368,6 @@ void handleMNotes() {
 void playMNote(int note) {
   for(int i=0; i<4; i++){
     Serial.println("verrrr GOOD");
-
     soul.mTrigger(i,note);
   }
 }
@@ -337,7 +396,7 @@ void handlePNotes() {
       this_note = inputToNote(octave,q);
 
       // count for oct change
-      if(i<4){
+      if(q<4){
         top++;
       } else {
         bottom++;
@@ -378,11 +437,10 @@ void handlePNotes() {
   // clean up note timer for (no longer held) note
   // note will play out on its own
   for(int i=0; i<4; i++){
-    if( ( time - voicetimes[i] ) >= 6000){
+    if( voicetimes[i]>0 && ( time - voicetimes[i] ) >= 6000){
       voicenotes[i] = -1;
       voicetimes[i] = -1;
     }
-
   }
 
   // change octave
@@ -394,7 +452,7 @@ void handlePNotes() {
         octave += 1;
         time_oct = time;
       }
-      
+
     } else if(bottom == 4 ) {
       // if down (4-7)
       if(octave>0){
@@ -437,10 +495,7 @@ uint8_t pixelToColor(uint8_t temp){
   return r << 16 | b | g << 8;
 }
 
-void lightRGB(*colors, text){
-  int r=0;
-  int g=0;
-  int b=0;
+void lightRGB(string text){
   uint8_t color = 0;
 
   if(colors){
@@ -448,9 +503,9 @@ void lightRGB(*colors, text){
     for(int q=0; q<64; q++){
       // get next r,g,b
       color = pixelToColor(colors[i]);
-      strip.setPixelColor(q, color); // 'On' pixel at head
-      // strip.setPixelColor(tail, 0);     // 'Off' pixel at tail
-      strip.show();                     // Refresh strip
+      rgbsquare.setPixelColor(q, color); // 'On' pixel at head
+      // rgbsquare.setPixelColor(tail, 0);     // 'Off' pixel at tail
+      rgbsquare.show();                     // Refresh strip
       // delay(20);                        // Pause 20 milliseconds (~50 FPS)
 
       // if(++head >= NUMPIXELS) {         // Increment head index.  Off end of strip?
