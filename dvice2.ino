@@ -47,9 +47,10 @@ int voicenotes [4];
 uint8_t octave=12;
 uint8_t mode=MONOMODE;
 
-unsigned long timer;
+unsigned long time;
 unsigned long time_oct;
 unsigned long time_mod;
+unsigned long time_rgb;
 
 float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
 
@@ -103,7 +104,7 @@ void setup() {
     voicenotes[i]=-2;
   }
  
-  // main timer
+  // main time
   time = millis();
   // timeouts
   time_oct = time;
@@ -114,46 +115,41 @@ void setup() {
 void loop() {
 
   time = millis();
+  monoMode();
+  // modechanged = checkMode();
 
-//  modechanged
-  // if(true){}
-    // if(mode == MONOMODE){
-    //   // setup voices
+  // // SETUP
+  // // voice, wave, pitchm, envelope, length, mod
 
-    //   soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
-    //   soul.setupVoice(1,SINE,60,ENVELOPE0,100,64);
-    //   soul.setupVoice(2,SINE,60,ENVELOPE2,110,64);
-    //   soul.setupVoice(3,SINE,60,ENVELOPE0,110,64);
+  // // setup my shit breh
+  // if(modechanged){
+  //   if(mode == MONOMODE){
 
-    // } else if (mode == POLYMODE){
+  //     soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
+  //     soul.setupVoice(1,SINE,60,ENVELOPE0,100,64);
+  //     soul.setupVoice(2,SINE,60,ENVELOPE2,110,64);
+  //     soul.setupVoice(3,SINE,60,ENVELOPE0,110,64);
+  //   } else if(mode == POLYMODE){
 
-    // } else if (mode == THERMODE){
+  //     soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
+  //     soul.setupVoice(1,SAW,60,ENVELOPE0,80,64);
+  //     soul.setupVoice(2,TRIANGLE,60,ENVELOPE2,80,64);
+  //     soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
+  //   } else {
 
-    // }
+  //   }
 
-  modechanged = checkMode();
+  // }
 
-  // setup my shit breh
-  if(modechanged){
-    if(mode == MONOMODE){
-
-    } else if(mode == POLYMODE){
-
-    } else {
-
-    }
-
-  }
-
-  // do my mode boy
-  switch(mode){
-    case 0: monoMode();
-            break;
-    case 1: polyMode();
-            break;
-    case 2: thermalMode();
-            break;            
-  }
+  // // do my mode boy
+  // switch(mode){
+  //   case 0: monoMode();
+  //           break;
+  //   case 1: polyMode();
+  //           break;
+  //   case 2: thermalMode();
+  //           break;            
+  // }
 
 }
 
@@ -190,7 +186,7 @@ void modeLights(){
 
 ////////// MODES //////////////
 void monoMode() {
-  string tex;  
+  char tex [3];
 ////// [8] inputs, int note_playing
 
   // get inputs
@@ -229,7 +225,7 @@ void polyMode() {
 ////// [8] inputs, [4] notes_playing
   // noteplaying -> [nil,nil,nil,128] if truthy, it's a note that is playing, otherwise voice is available
 
-  string tex;
+  char tex [3];
 
 ////// SETUP
   // setup 4 voices w/ length 64 or something
@@ -262,10 +258,54 @@ void polyMode() {
 void thermalMode() {
   // wtf!
   getThermal();
+  uint8_t avg_global;
+  uint8_t avg_quad [4];
+  uint8_t quadindex = 0;
+  uint8_t quadmax = 0;
+  uint8_t i = 0;
 
-  for(uint8_t i=0; i<NUMPIXELS; i++){
-    thermal[i]
+  // distribute thermal values
+  for(i; i<NUMPIXELS; i++){
+    avg_global += thermal[i];
+    
+    if(i<32){
+      quadindex = 0;
+    } else {
+      quadindex = 2;
+    }
+
+    if( (i%8)>3 ){
+      quadindex += 1;
+    }
+
+    avg_quad[quadindex] += thermal[i];
   }
+
+  // calc averages
+  avg_global = avg_global/64;
+  avg_quad[0] = avg_quad[0]/16;
+  avg_quad[1] = avg_quad[1]/16;
+  avg_quad[2] = avg_quad[2]/16;
+  avg_quad[3] = avg_quad[3]/16;
+
+  // pick hot quadrant
+  for(i=0; i<4; i++){
+    if( avg_quad[i] > quadmax ){
+      quadmax = avg_quad[i];
+    }
+  }
+
+  // if quadrant changed or nothing playing
+    // start new quadrant
+
+  // else
+    // continue playing quadrant
+    // check note time...
+    // play if ready
+
+  // play relevant flourish notes
+
+
 
 }
 
@@ -325,7 +365,7 @@ void handleMNotes() {
       playMNote(new_note);
     }
 
-  } else if(howmanyheld == 1 && new_note >= 0) {
+  } else if( (top+bottom) == 1 && new_note >= 0) {
     Serial.println("playing new note");
     playMNote(new_note);
     voicenotes[0] = new_note;
@@ -423,7 +463,7 @@ void handlePNotes() {
 
       } else {
         // choose random voice to overwrite
-        noteindex = rand(3);
+        noteindex = rand()*3;
         voicetimes[noteindex] = time;
         voicenotes[noteindex] = this_note;
         playPNote(this_note, noteindex);
@@ -434,7 +474,7 @@ void handlePNotes() {
     keepplaying = false;
   }
 
-  // clean up note timer for (no longer held) note
+  // clean up note time for (no longer held) note
   // note will play out on its own
   for(int i=0; i<4; i++){
     if( voicetimes[i]>0 && ( time - voicetimes[i] ) >= 6000){
@@ -472,6 +512,8 @@ void playPNote(int note, int voice) {
 uint8_t pixelToColor(uint8_t temp){
   // 25-40 in a hot ass room
 
+  const int NUM_COLORS = 4;
+  static float color[NUM_COLORS][3] = { {0,0,1}, {0,1,0}, {1,1,0}, {1,0,0} };
   // temp - min / max - min
   int tempmag = 1 - ( (temp - 25)/(40-25) );
   int idx1;        // |-- Our desired color will be between these two indexes in "color".
@@ -481,9 +523,9 @@ uint8_t pixelToColor(uint8_t temp){
   if(tempmag <= 0) {
     idx1 = idx2 = 0;
   } else if(tempmag >= 1) {
-    idx1 = idx2 = 4-1;    // accounts for an input >=0
+    idx1 = idx2 = NUM_COLORS-1;    // accounts for an input >=0
   } else {
-    tempmag = tempmag * (4-1);        // Will multiply tempmag by 3.
+    tempmag = tempmag * (NUM_COLORS-1);        // Will multiply tempmag by 3.
     idx1  = floor(tempmag);                  // Our desired color will be after this index.
     idx2  = idx1+1;                        // ... and before this index (inclusive).
     fractBetween = tempmag - float(idx1);    // Distance between the two indexes (0-1).
@@ -495,14 +537,14 @@ uint8_t pixelToColor(uint8_t temp){
   return r << 16 | b | g << 8;
 }
 
-void lightRGB(string text){
+void lightRGB(char * text){
   uint8_t color = 0;
 
-  if(colors){
-  // colors
+  if(thermal){
+  // thermal
     for(int q=0; q<64; q++){
       // get next r,g,b
-      color = pixelToColor(colors[i]);
+      color = pixelToColor(thermal[q]);
       rgbsquare.setPixelColor(q, color); // 'On' pixel at head
       // rgbsquare.setPixelColor(tail, 0);     // 'Off' pixel at tail
       rgbsquare.show();                     // Refresh strip
