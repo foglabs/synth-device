@@ -68,6 +68,8 @@ unsigned long time_rgb;
 unsigned long time_thr;
 unsigned long time_mbt;
 
+unsigned long voicedelay=1000;
+
 float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
 
 bool modechanged = false;
@@ -76,7 +78,7 @@ bool first = true;
 ///////////////////////////////////////////
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
 
   // 0,1,2,4,5,6,7,8 arcade pins (input)
   // 3,11 pwm pins
@@ -94,7 +96,7 @@ void setup() {
   pinMode( ARCADE6, INPUT_PULLUP );
   pinMode( ARCADE7, INPUT_PULLUP );
 
-  pinMode( BLUEPIN, OUTPUT );
+  // pinMode( BLUEPIN, OUTPUT );
 
   // pinMode( KNOBPIN, INPUT );
 
@@ -104,7 +106,7 @@ void setup() {
   // RGB object
   rgbsquare.begin(); // Initialize pins for output
   rgbsquare.show();  // Turn all LEDs off ASAP
-  rgbsquare.setBrightness(100);  // lower max brightness
+  rgbsquare.setBrightness(10);  // lower max brightness
 
   // start synth instance
   soul.begin(DIFF);
@@ -140,23 +142,20 @@ void loop() {
   time = millis();
   modechanged = checkMode();
 
-  Serial.print("Mode is now ");
-  Serial.println(mode);
-  // modeLights();
-  // Serial.print("Mode");
+  // Serial.print("Mode is now ");
   // Serial.println(mode);
+  // Serial.println(modechanged);
+
+  // modeLights();
   // // SETUP
   // // voice, wave, pitchm, envelope, length, mod
 
-  // Serial.println(mode);
   // setup my shit breh
   if(modechanged || first){
 
     clearVoices();
 
     if(mode == MONOMODE){
-
-
       soul.setWave(0,SINE);
       soul.setWave(1,SAW);
       soul.setWave(2,SINE);
@@ -165,7 +164,7 @@ void loop() {
       soul.setLength(1,60);
       soul.setLength(2,60);
       soul.setLength(3,60);
-      Serial.println("Set Waves Mono");
+      // Serial.println("Set Waves Mono");
 
     } else if(mode == POLYMODE){
 
@@ -179,12 +178,12 @@ void loop() {
       soul.setLength(1,40);
       soul.setLength(2,40);
       soul.setLength(3,40);
-      Serial.println("Set Waves Poly");
+      // Serial.println("Set Waves Poly");
 
     }
 
     modechanged = false;
-    first=false;
+    first = false;
   }
 
 
@@ -225,6 +224,7 @@ bool checkMode(){
 
 
     if(digitalRead(MODEPIN) == LOW){
+
       // increment mode...
       mode++;
 
@@ -244,7 +244,7 @@ void clearVoices(){
   for(uint8_t i=0; i<4; i++){
     voicetimes[i] = time;
     voicenotes[i] = -1;
-    setLength(i,0);
+    soul.setLength(i,0);
   }
 }
 
@@ -274,7 +274,7 @@ uint8_t getAvailVoice(){
 
   for(i=0; i<4; i++){
     // ready to be interupted?
-    if( (time - voicetimes[i]) >= 500 ){
+    if( (time - voicetimes[i]) >= voicedelay ){
       return i;
     }
   }
@@ -474,8 +474,8 @@ void handleMNotes() {
         bottom++;
       }
 
-      Serial.print("got input");
-      Serial.println(i);
+      // Serial.print("got input");
+      // Serial.println(i);
     }
   }
 
@@ -484,7 +484,7 @@ void handleMNotes() {
 
   if(voicenotes[0]==new_note){
     // Serial.println("got keepplaying");
-    if( ( time - voicetimes[0] ) >= 500){
+    if( ( time - voicetimes[0] ) >= voicedelay ){
 
       // retrigger
       playMNote(new_note);
@@ -530,8 +530,8 @@ void handleMNotes() {
 
 void playMNote(int note) {
   // reset timer
-  voicetimes[0] = time;
-  voicenotes[0] = note;
+  // voicetimes[0] = time;
+  // voicenotes[0] = note;
 
   for(int i=0; i<4; i++){
     // Serial.println("verrrr GOOD play "+note);
@@ -557,14 +557,14 @@ void handlePNotes() {
 
     // if button down - if no longer down, voice will play out its length until replaced
     if( arcades[q] == LOW ){
-      Serial.println("Pressed "+q);
+      // Serial.println("Pressed "+q);
 
       if(numstaged <= 4){
         voicestaged[numstaged] = inputToNote(q);
         numstaged++;
         
-        Serial.print("New note ");
-        Serial.println(voicestaged[q]);
+        // Serial.print("New note ");
+        // Serial.println(voicestaged[q]);
       }
 
       // count for oct change
@@ -606,8 +606,8 @@ void handlePNotes() {
     // loop through voicenotes
     for(uint8_t i=0; i<4; i++){
 
-      // check timer for this voice (dont disturb voice until 500ms)
-      if( ( time - voicetimes[i] ) >= 500){
+      // check timer for this voice (dont disturb voice until voicedelay ms)
+      if( ( time - voicetimes[i] ) >= voicedelay ){
 
         // already playing?
         if(voicestaged[w] == voicenotes[i]){
