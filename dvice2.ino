@@ -9,8 +9,8 @@
 
 // RGB
 #define NUMPIXELS 64 // Number of LEDs in strip
-#define DATAPIN    9
-#define CLOCKPIN   10
+#define DATAPIN    10
+#define CLOCKPIN   9
 
 #define ARCADE0 0
 #define ARCADE1 1
@@ -23,11 +23,15 @@
 
 #define MODEPIN 12
 
+#define BLUEPIN A1
+#define KNOBPIN A2
+
 #define MONOMODE 0
 #define POLYMODE 1
 #define THERMODE 2
 
 // RGB
+
 Adafruit_DotStar rgbsquare = Adafruit_DotStar(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
 
 // Thermal
@@ -36,25 +40,36 @@ Adafruit_AMG88xx amg;
 // ze synth
 synth soul;
 
+
+bool change = true;
+int fade = 0;
+unsigned long fadespeed = 2000;
+
 //////////////////GLOBALS/////////////////
-int arcades [8] {-1,-1,-1,-1,-1,-1,-1,-1};
-int arcadepins [8] {ARCADE0,ARCADE1,ARCADE2,ARCADE3,ARCADE4,ARCADE5,ARCADE6,ARCADE7};
+uint8_t arcades [8] {1,1,1,1,1,1,1,1};
+uint8_t arcadepins [8] {ARCADE0,ARCADE1,ARCADE2,ARCADE3,ARCADE4,ARCADE5,ARCADE6,ARCADE7};
 
 // poly voice timeouts
 unsigned long voicetimes [4];
+// to be played
+int voicestaged [4];
+// playing now
 int voicenotes [4];
 
 uint8_t octave=12;
-uint8_t mode=MONOMODE;
+int mode=MONOMODE;
 
 unsigned long time;
 unsigned long time_oct;
 unsigned long time_mod;
 unsigned long time_rgb;
+unsigned long time_thr;
+unsigned long time_mbt;
 
 float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
 
 bool modechanged = false;
+bool first = true;
 
 ///////////////////////////////////////////
 
@@ -68,7 +83,6 @@ void setup() {
   // A4,A5 thermal pins
   
   // setup arcades
-  pinMode(13, OUTPUT);
   pinMode( ARCADE0, INPUT_PULLUP );
   pinMode( ARCADE1, INPUT_PULLUP );
   pinMode( ARCADE2, INPUT_PULLUP );
@@ -77,6 +91,10 @@ void setup() {
   pinMode( ARCADE5, INPUT_PULLUP );
   pinMode( ARCADE6, INPUT_PULLUP );
   pinMode( ARCADE7, INPUT_PULLUP );
+
+  pinMode( BLUEPIN, OUTPUT );
+
+  // pinMode( KNOBPIN, INPUT );
 
   // mode
   pinMode( MODEPIN, INPUT_PULLUP );
@@ -90,87 +108,162 @@ void setup() {
   soul.begin(DIFF);
 
   // begin thermal
-  // amg.begin();
+  amg.begin();
 
-      soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
-      soul.setupVoice(1,SINE,60,ENVELOPE0,100,64);
-      soul.setupVoice(2,SINE,60,ENVELOPE2,110,64);
-      soul.setupVoice(3,SINE,60,ENVELOPE0,110,64);
-
+      // soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
+      // soul.setupVoice(1,SINE,60,ENVELOPE0,100,64);
+      // soul.setupVoice(2,SINE,60,ENVELOPE2,110,64);
+      // soul.setupVoice(3,SINE,60,ENVELOPE0,110,64);
 
   // initialize
-  for(int i=0; i<4;i++){
-    voicetimes[i]=millis();
-    voicenotes[i]=-2;
-  }
- 
+  
   // main time
   time = millis();
   // timeouts
   time_oct = time;
+  time_mod = time;
+  time_rgb = time;
+  time_thr = time;
+  time_mbt = time;
 
+  for(int i=0; i<4;i++){
+    voicetimes[i]=time;
+    voicenotes[i]=-1;
+    voicestaged[i]=-2;
+  }
 }
-
 
 void loop() {
 
   time = millis();
-  monoMode();
-  // modechanged = checkMode();
+  modechanged = checkMode();
 
+  Serial.print("Mode is now ");
+  Serial.println(mode);
+  // modeLights();
+  // Serial.print("Mode");
+  // Serial.println(mode);
   // // SETUP
   // // voice, wave, pitchm, envelope, length, mod
 
-  // // setup my shit breh
-  // if(modechanged){
-  //   if(mode == MONOMODE){
+  // Serial.println(mode);
+  // setup my shit breh
+  if(modechanged || first){
 
-  //     soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
-  //     soul.setupVoice(1,SINE,60,ENVELOPE0,100,64);
-  //     soul.setupVoice(2,SINE,60,ENVELOPE2,110,64);
-  //     soul.setupVoice(3,SINE,60,ENVELOPE0,110,64);
-  //   } else if(mode == POLYMODE){
+    clearVoices();
 
-  //     soul.setupVoice(0,SINE,60,ENVELOPE0,80,64);
-  //     soul.setupVoice(1,SAW,60,ENVELOPE0,80,64);
-  //     soul.setupVoice(2,TRIANGLE,60,ENVELOPE2,80,64);
-  //     soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
-  //   } else {
+    if(mode == MONOMODE){
 
-  //   }
 
-  // }
+      soul.setWave(0,SINE);
+      soul.setWave(1,SAW);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SINE);
+      soul.setLength(0,60);
+      soul.setLength(1,60);
+      soul.setLength(2,60);
+      soul.setLength(3,60);
+      Serial.println("Set Waves Mono");
 
+    } else if(mode == POLYMODE){
+
+      soul.setWave(0,SAW);
+      soul.setWave(1,SAW);
+      soul.setWave(2,TRIANGLE);
+      soul.setWave(3,SAW);
+
+    // } else if(mode == THERMODE){
+      soul.setLength(0,40);
+      soul.setLength(1,40);
+      soul.setLength(2,40);
+      soul.setLength(3,40);
+      Serial.println("Set Waves Poly");
+
+    }
+
+    modechanged = false;
+    first=false;
+  }
+
+
+  if( (time - time_mbt) >= fadespeed ){
+    if(change){
+      fade+=1;
+      if(fade>255){
+        fade=0;
+      }
+
+      change = false;
+    } else {
+      change = true;
+    }
+
+    time_mbt = time;
+  }
+
+  // analogWrite(BLUEPIN, fade);
+  // Serial.println(analogRead(KNOBPIN));  
+  
   // // do my mode boy
-  // switch(mode){
-  //   case 0: monoMode();
-  //           break;
-  //   case 1: polyMode();
-  //           break;
-  //   case 2: thermalMode();
-  //           break;            
-  // }
-
+  switch(mode){
+    case 0: monoMode();
+            break;
+    case 1: polyMode();
+            break;
+    // case 2: thermalMode();
+    //         break;            
+  }
 }
 
-//////////////////MODE CHECKS/////////////////
+////////////////// CHECKS  /////////////////
 bool checkMode(){
-  if( (time - time_mod) >= 1000 ){
+
+  if( (time - time_mod) >= 2000 ){
     // rgb button
+
+
     if(digitalRead(MODEPIN) == LOW){
       // increment mode...
       mode++;
 
       if(mode>2){
-        mode = 0;
+        mode = MONOMODE;
       }
 
       time_mod = time;
       return true;
     }
-  } else {
-    return false;
   }
+
+  return false;
+}
+
+void clearVoices(){
+  for(uint8_t i=0; i<4; i++){
+    voicetimes[i] = time;
+    voicenotes[i] = -1;
+    setLength(i,0);
+  }
+}
+
+uint8_t getAvailVoice(){
+  uint8_t i;
+
+  for(i=0; i<4; i++){
+    // no note playing on this voice?
+    if(voicenotes[i] == -1){
+      return i;
+    }
+  }
+
+  for(i=0; i<4; i++){
+    // ready to be interupted?
+    if( (time - voicetimes[i]) >= 500 ){
+      return i;
+    }
+  }
+
+  return 5;
 }
 
 void modeLights(){
@@ -195,6 +288,7 @@ void monoMode() {
     // collect inputted notes in inputs array
   for(uint8_t i=0; i<8; i++){
     arcades[i] = getArcade( arcadepins[i] );
+    // Serial.println(arcades[i]);
   }
 
   handleMNotes();
@@ -207,12 +301,17 @@ void monoMode() {
       // if inputs include note_playing, re-trigger note_playing
       // if not, trigger new first note (if multi, choose random?)
 
-  // getThermal();
+  if( (time - time_thr) >= 500){
+    getThermal();
+    // Serial.println(thermal[0]);
+    time_thr = time;
+  }
   // set modulation (thermal or whateva)
 
   // light lights
-  if( (time-time_rgb) >= 500 ){
+  if( (time-time_rgb) >= 1000 ){
     lightRGB(tex);
+    time_rgb = time;
   }
 
   // cleanup?
@@ -233,6 +332,11 @@ void polyMode() {
   // get inputs
     // collect inputted notes in inputs array
     // 
+    // collect inputted notes in inputs array
+  for(uint8_t i=0; i<8; i++){
+    arcades[i] = getArcade( arcadepins[i] );
+    // Serial.println(arcades[i]);
+  }
 
   // kill notes
     // for each note in note_playing
@@ -247,11 +351,16 @@ void polyMode() {
     // trigger first 4 notes of input
 
   // set modulation (thermal or whateva)
-  getThermal();
+  if( (time - time_thr) >= 500){
+    getThermal();
+    // Serial.println(thermal[0]);
+    time_thr = time;
+  }
 
   // light lights
-  if( (time-time_rgb) >= 500 ){
+  if( (time-time_rgb) >= 1000 ){
     lightRGB(tex);
+    time_rgb = time;
   }
 }
 
@@ -310,13 +419,13 @@ void thermalMode() {
 }
 
 //////////// INPUT RELATED FUNCTIONS /////////
-int getArcade(int pin) {
+uint8_t getArcade(uint8_t pin) {
   return digitalRead(pin);
 }
 
-int inputToNote(int oct, int offset) {
+int inputToNote(int offset) {
   // 16 possible 'octaves' w/ 8 each
-  return (oct*8)+offset;
+  return (octave*8)+offset;
 }
 
 void getThermal(){
@@ -333,12 +442,13 @@ void handleMNotes() {
   uint8_t bottom = 0;
 
   // only play if one arcades
-  for(int i=0; i<8; i++){
+  for(uint8_t i=0; i<8; i++){
 
     // low is on baby
     if(arcades[i] == LOW){
-      new_note = inputToNote(octave,i);
-      digitalWrite(13, HIGH);
+      new_note = inputToNote(i);
+      // Serial.println("note "+new_note);
+      // digitalWrite(13, HIGH);
 
       // count for octave change
       // top or bottom row
@@ -348,8 +458,8 @@ void handleMNotes() {
         bottom++;
       }
 
-      // Serial.print("got input");
-      // Serial.println(i);
+      Serial.print("got input");
+      Serial.println(i);
     }
   }
 
@@ -357,8 +467,8 @@ void handleMNotes() {
   // Serial.println(time);
 
   if(voicenotes[0]==new_note){
-    Serial.println("got keepplaying");
-    if( ( time - voicetimes[0] ) >= 6000){
+    // Serial.println("got keepplaying");
+    if( ( time - voicetimes[0] ) >= 500){
         // set to new time for new note
       voicetimes[0] = time;
       // retrigger
@@ -366,16 +476,16 @@ void handleMNotes() {
     }
 
   } else if( (top+bottom) == 1 && new_note >= 0) {
-    Serial.println("playing new note");
+    // Serial.println("playing new note");
     playMNote(new_note);
     voicenotes[0] = new_note;
     voicetimes[0] = time;
  
   } else if( voicetimes[0] > 0 && ( time - voicetimes[0] ) >= 6000) {
-    Serial.println("kill note tiemrs");
-    voicetimes[0] = -1;
-    voicenotes[0] = -2;
-    digitalWrite(13, LOW);
+    // Serial.println("kill note tiemrs");
+    voicetimes[0] = 0;
+    voicenotes[0] = -1;
+    // digitalWrite(13, LOW);
     // killMNote();
   }
 
@@ -407,7 +517,7 @@ void handleMNotes() {
 
 void playMNote(int note) {
   for(int i=0; i<4; i++){
-    Serial.println("verrrr GOOD");
+    // Serial.println("verrrr GOOD play "+note);
     soul.mTrigger(i,note);
   }
 }
@@ -419,71 +529,38 @@ void killMNote() {
 }
 
 void handlePNotes() {
-  bool keepplaying = false;
-  int this_note = -1;
-  int noteindex = 0;
-  unsigned long time = millis();
+  bool wasplaying = false;
 
   uint8_t top = 0;
   uint8_t bottom = 0;
+  uint8_t numstaged = 0;
 
   // go through arcades
-  for(int q=0; q<8; q++){
+  for(uint8_t q=0; q<8; q++){
 
     // if button down - if no longer down, voice will play out its length until replaced
     if( arcades[q] == LOW ){
       Serial.println("Pressed "+q);
-      this_note = inputToNote(octave,q);
+      notetoplay = inputToNote(q);
+
+      Serial.print("New note ");
+      Serial.println(notetoplay);
 
       // count for oct change
       if(q<4){
         top++;
       } else {
         bottom++;
-      }      
-
-      // are we already playing this note?
-      for(int i=0; i<4; i++){
-
-        if(voicenotes[i]==this_note){
-          keepplaying = true;
-          noteindex = i;
-        }
       }
 
-      if(keepplaying){
-        
-        // wait for retrigger if held
-        if( ( time - voicetimes[noteindex] ) >= 6000){
-            // set to new time for new note
-          voicetimes[noteindex] = time;
-          // retrigger
-          playPNote(this_note, noteindex);
-        }
-
-      } else {
-        // choose random voice to overwrite
-        noteindex = rand()*3;
-        voicetimes[noteindex] = time;
-        voicenotes[noteindex] = this_note;
-        playPNote(this_note, noteindex);
+      if(numstaged <= 4){
+        voicestaged[numstaged] = notetoplay;
+        numstaged++;
       }
-    }
-
-    // reset for next input check
-    keepplaying = false;
-  }
-
-  // clean up note time for (no longer held) note
-  // note will play out on its own
-  for(int i=0; i<4; i++){
-    if( voicetimes[i]>0 && ( time - voicetimes[i] ) >= 6000){
-      voicenotes[i] = -1;
-      voicetimes[i] = -1;
     }
   }
 
-  // change octave
+  // change octave befor eplaying notes
   if( (time - time_oct) >= 1000){
 
     if( top == 4 ){
@@ -493,15 +570,156 @@ void handlePNotes() {
         time_oct = time;
       }
 
+      return;
     } else if(bottom == 4 ) {
       // if down (4-7)
       if(octave>0){
         octave -= 1;
         time_oct = time;
       }
+
+      return; 
     }
-    
   }
+
+
+  // loop through staged notes
+  for(uint8_t w=0; w<numstaged; w++){
+    wasplaying = false;
+
+    // loop through voicenotes
+    for(uint8_t i=0; i<4; i++){
+
+      // check timer for this voice (dont disturb voice until 500ms)
+      if( ( time - voicetimes[i] ) >= 500){
+
+        // already playing?
+        if(voicestaged[w] == voicenotes[i]){
+
+          // retrig
+          playPNote(voicestaged[w], i);
+
+          // reset timer for this voice
+          voicetimes[i] = time;
+          
+          // go to next staged w
+          wasplaying = true;
+          break;
+
+        // not playing this note yet
+        }
+      }
+    }
+
+    if(wasplaying){
+      // dont try to play same note on a free voice, skip to next w
+      continue;
+    }
+
+    uint8_t voice = getAvailVoice();
+
+    // availvoice was found?
+    if(voice < 5){
+
+      playPNote(voicestaged[w], voice);
+      voicenotes[voice] = voicestaged[w];
+      voicetimes[voice] = time;
+    }
+
+    // unstage
+    voicestaged[w] = -2;
+  }
+
+
+
+    ////////eh
+
+    // is this voice ready to be overwritten yet
+    if( ( time - voicetimes[w] ) >= 500){
+
+      // check if this voice is playing note that
+
+
+      // voicenotes[w] is note playing on voice w
+      // voicetimes[w] is timer for voice w
+      // voicestaged[] is notes to take over
+        // open voices
+        // voices with ready timers
+
+      // is voice w playing any staged notes
+      for(uint8_t i=0; i<4; i++){
+
+        if( voicenotes[w] == voicestaged[i] ){
+          // retrigger dis
+          playPNote(voicestaged[i], w);
+          voicestaged[i] = -2;
+          numstaged -= 1;
+        }
+
+      }
+
+      // reset voice timer
+      voicetimes[w] = time;
+    }
+
+  for(uint8_t i=0; i<numstaged; i++){
+
+
+  // note to play is found
+  if(voicestaged[i]>0){
+
+
+    uint8_t voice = getAvailVoice();
+
+
+    // availvoice was found
+    if(voice < 5){
+      playPNote(voicestaged[w], voice);
+    }
+  } else {
+
+  }
+
+
+}
+
+
+   
+
+
+
+// ////////// old
+  //   if(keepplaying){
+      
+  //     // wait for retrigger if held
+  //     if( ( time - voicetimes[noteindex] ) >= 500){
+  //         // set to new time for new note
+  //       voicetimes[noteindex] = time;
+  //       // retrigger
+  //       playPNote(this_note, noteindex);
+  //     }
+
+  //   } else {
+  //     // choose random voice to overwrite
+  //     noteindex = rand()*3;
+  //     voicetimes[noteindex] = time;
+  //     voicenotes[noteindex] = this_note;
+  //     playPNote(this_note, noteindex);
+  //   }
+
+  //   // reset for next input check
+  //   keepplaying = false;
+
+  // // clean up note time for (no longer held) note
+  // // note will play out on its own
+  // for(int i=0; i<4; i++){
+  //   if( voicetimes[i]>0 && ( time - voicetimes[i] ) >= 6000){
+  //     voicenotes[i] = -1;
+  //     voicetimes[i] = 0;
+  //   }
+  // }
+//////////////////////
+
 }
 
 void playPNote(int note, int voice) {
@@ -509,58 +727,44 @@ void playPNote(int note, int voice) {
 }
 
 //////////// LIGHTS /////////
-uint8_t pixelToColor(uint8_t temp){
+uint32_t pixelToColor(float temp){
   // 25-40 in a hot ass room
 
-  const int NUM_COLORS = 4;
-  static float color[NUM_COLORS][3] = { {0,0,1}, {0,1,0}, {1,1,0}, {1,0,0} };
-  // temp - min / max - min
-  int tempmag = 1 - ( (temp - 25)/(40-25) );
-  int idx1;        // |-- Our desired color will be between these two indexes in "color".
-  int idx2;        // |
-  float fractBetween = 0; 
+// def rgb(minimum, maximum, value):
+//     minimum, maximum = float(minimum), float(maximum)
+//     ratio = 2 * (value-minimum) / (maximum - minimum)
+//     b = int(max(0, 255*(1 - ratio)))
+//     r = int(max(0, 255*(ratio - 1)))
+//     g = 255 - b - r
+//     return r, g, b
 
-  if(tempmag <= 0) {
-    idx1 = idx2 = 0;
-  } else if(tempmag >= 1) {
-    idx1 = idx2 = NUM_COLORS-1;    // accounts for an input >=0
-  } else {
-    tempmag = tempmag * (NUM_COLORS-1);        // Will multiply tempmag by 3.
-    idx1  = floor(tempmag);                  // Our desired color will be after this index.
-    idx2  = idx1+1;                        // ... and before this index (inclusive).
-    fractBetween = tempmag - float(idx1);    // Distance between the two indexes (0-1).
-  }
+  float min = 25;
+  float max = 40;
+  float ratio = 2*(temp-min)/(max-min);
+  uint8_t r = round( max(0, 255*(ratio-1)) );
+  uint8_t b = round( max(0,255*(1-ratio)) );
+  uint8_t g = round( 255 - b - r );
 
-  uint8_t r = (color[idx2][0] - color[idx1][0])*fractBetween + color[idx1][0];
-  uint8_t g = (color[idx2][1] - color[idx1][1])*fractBetween + color[idx1][1];
-  uint8_t b  = (color[idx2][2] - color[idx1][2])*fractBetween + color[idx1][2];
+  // Serial.print("r");
+  // Serial.println(r);
+  // Serial.print("g");
+  // Serial.println(g);
+  // Serial.print("b");
+  // Serial.println(b);    
   return r << 16 | b | g << 8;
 }
 
 void lightRGB(char * text){
-  uint8_t color = 0;
+  uint32_t color = 0;
 
-  if(thermal){
   // thermal
-    for(int q=0; q<64; q++){
-      // get next r,g,b
-      color = pixelToColor(thermal[q]);
-      rgbsquare.setPixelColor(q, color); // 'On' pixel at head
-      // rgbsquare.setPixelColor(tail, 0);     // 'Off' pixel at tail
-      rgbsquare.show();                     // Refresh strip
-      // delay(20);                        // Pause 20 milliseconds (~50 FPS)
-
-      // if(++head >= NUMPIXELS) {         // Increment head index.  Off end of strip?
-      //   head = 0;                       //  Yes, reset head index to start
-      //   if((color >>= 8) == 0)          //  Next color (R->G->B) ... past blue now?
-      //     color = 0xFF0000;             //   Yes, reset to red
-      // }
-      // if(++tail >= NUMPIXELS) tail = 0; // Increment, reset tail index  
-    }
-
-  } else {
-    // draw text!!
+  for(int q=0; q<64; q++){
+    // get next r,g,b
+    color = pixelToColor(thermal[q]);
+    rgbsquare.setPixelColor(q, color); // 'On' pixel at head
+    // delay(20);                        // Pause 20 milliseconds (~50 FPS)
   }
-  
+
+  rgbsquare.show();                     // Refresh strip
 }
   
