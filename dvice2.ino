@@ -30,6 +30,8 @@
 #define POLYMODE 1
 #define THERMODE 2
 
+#define MAXNOTELENGTH 3000
+
 // RGB
 
 Adafruit_DotStar rgbsquare = Adafruit_DotStar(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
@@ -244,6 +246,20 @@ void clearVoices(){
     voicenotes[i] = -1;
     setLength(i,0);
   }
+}
+
+void cleanUpNotes(){
+  for(uint8_t i=0; i<4; i++){
+
+    // must be finished by now?
+    if( (time-voicetimes[i]) >= MAXNOTELENGTH ){
+      voicetimes[i] = time;
+      voicenotes[i] = -1;  
+    }
+
+    // unstage
+    voicestaged[i] = -2;
+  } 
 }
 
 uint8_t getAvailVoice(){
@@ -469,8 +485,7 @@ void handleMNotes() {
   if(voicenotes[0]==new_note){
     // Serial.println("got keepplaying");
     if( ( time - voicetimes[0] ) >= 500){
-        // set to new time for new note
-      voicetimes[0] = time;
+
       // retrigger
       playMNote(new_note);
     }
@@ -478,12 +493,10 @@ void handleMNotes() {
   } else if( (top+bottom) == 1 && new_note >= 0) {
     // Serial.println("playing new note");
     playMNote(new_note);
-    voicenotes[0] = new_note;
-    voicetimes[0] = time;
  
   } else if( voicetimes[0] > 0 && ( time - voicetimes[0] ) >= 6000) {
     // Serial.println("kill note tiemrs");
-    voicetimes[0] = 0;
+     voicetimes[0] = 0;
     voicenotes[0] = -1;
     // digitalWrite(13, LOW);
     // killMNote();
@@ -516,6 +529,10 @@ void handleMNotes() {
 }
 
 void playMNote(int note) {
+  // reset timer
+  voicetimes[0] = time;
+  voicenotes[0] = note;
+
   for(int i=0; i<4; i++){
     // Serial.println("verrrr GOOD play "+note);
     soul.mTrigger(i,note);
@@ -560,7 +577,7 @@ void handlePNotes() {
     }
   }
 
-  // change octave befor eplaying notes
+  // change octave? -> exit befor eplaying notes
   if( (time - time_oct) >= 1000){
 
     if( top == 4 ){
@@ -582,7 +599,6 @@ void handlePNotes() {
     }
   }
 
-
   // loop through staged notes
   for(uint8_t w=0; w<numstaged; w++){
     wasplaying = false;
@@ -599,14 +615,9 @@ void handlePNotes() {
           // retrig
           playPNote(voicestaged[w], i);
 
-          // reset timer for this voice
-          voicetimes[i] = time;
-          
           // go to next staged w
           wasplaying = true;
           break;
-
-        // not playing this note yet
         }
       }
     }
@@ -620,109 +631,16 @@ void handlePNotes() {
 
     // availvoice was found?
     if(voice < 5){
-
-      playPNote(voicestaged[w], voice);
-      voicenotes[voice] = voicestaged[w];
-      voicetimes[voice] = time;
-    }
-
-    // unstage
-    voicestaged[w] = -2;
-  }
-
-
-
-    ////////eh
-
-    // is this voice ready to be overwritten yet
-    if( ( time - voicetimes[w] ) >= 500){
-
-      // check if this voice is playing note that
-
-
-      // voicenotes[w] is note playing on voice w
-      // voicetimes[w] is timer for voice w
-      // voicestaged[] is notes to take over
-        // open voices
-        // voices with ready timers
-
-      // is voice w playing any staged notes
-      for(uint8_t i=0; i<4; i++){
-
-        if( voicenotes[w] == voicestaged[i] ){
-          // retrigger dis
-          playPNote(voicestaged[i], w);
-          voicestaged[i] = -2;
-          numstaged -= 1;
-        }
-
-      }
-
-      // reset voice timer
-      voicetimes[w] = time;
-    }
-
-  for(uint8_t i=0; i<numstaged; i++){
-
-
-  // note to play is found
-  if(voicestaged[i]>0){
-
-
-    uint8_t voice = getAvailVoice();
-
-
-    // availvoice was found
-    if(voice < 5){
       playPNote(voicestaged[w], voice);
     }
-  } else {
-
   }
-
-
-}
-
-
-   
-
-
-
-// ////////// old
-  //   if(keepplaying){
-      
-  //     // wait for retrigger if held
-  //     if( ( time - voicetimes[noteindex] ) >= 500){
-  //         // set to new time for new note
-  //       voicetimes[noteindex] = time;
-  //       // retrigger
-  //       playPNote(this_note, noteindex);
-  //     }
-
-  //   } else {
-  //     // choose random voice to overwrite
-  //     noteindex = rand()*3;
-  //     voicetimes[noteindex] = time;
-  //     voicenotes[noteindex] = this_note;
-  //     playPNote(this_note, noteindex);
-  //   }
-
-  //   // reset for next input check
-  //   keepplaying = false;
-
-  // // clean up note time for (no longer held) note
-  // // note will play out on its own
-  // for(int i=0; i<4; i++){
-  //   if( voicetimes[i]>0 && ( time - voicetimes[i] ) >= 6000){
-  //     voicenotes[i] = -1;
-  //     voicetimes[i] = 0;
-  //   }
-  // }
-//////////////////////
-
+  
+  cleanUpNotes();
 }
 
 void playPNote(int note, int voice) {
+  voicenotes[voice] = note;
+  voicetimes[voice] = time;
   soul.mTrigger(voice,note);
 }
 
