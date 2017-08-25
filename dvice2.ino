@@ -558,10 +558,14 @@ void handlePNotes() {
     // if button down - if no longer down, voice will play out its length until replaced
     if( arcades[q] == LOW ){
       Serial.println("Pressed "+q);
-      notetoplay = inputToNote(q);
 
-      Serial.print("New note ");
-      Serial.println(notetoplay);
+      if(numstaged <= 4){
+        voicestaged[numstaged] = inputToNote(q);
+        numstaged++;
+        
+        Serial.print("New note ");
+        Serial.println(voicestaged[q]);
+      }
 
       // count for oct change
       if(q<4){
@@ -570,10 +574,6 @@ void handlePNotes() {
         bottom++;
       }
 
-      if(numstaged <= 4){
-        voicestaged[numstaged] = notetoplay;
-        numstaged++;
-      }
     }
   }
 
