@@ -896,18 +896,24 @@ uint32_t pixelToColor(float temp){
 
 void lightRGB(char * text){
   uint32_t color = 0;
-  uint8_t row = 7;
+  int incre = 7;
+  int rowbegin = 0;
 
   // thermal
   for(int q=0; q<64; q++){
     // get next r,g,b
-
-    // invert lr because whoopsie!
-    color = pixelToColor(thermal[row-q]);
     
-    if((q+1) % 8 == 0){
-      row+=8;
+
+    if((rowbegin+incre)==rowbegin){
+      incre=7;
+      rowbegin+=8;
     }
+
+Serial.println("HEAR HERE ");
+    Serial.println(rowbegin+incre);
+    // invert lr because whoopsie!
+    color = pixelToColor(thermal[ rowbegin+incre ]);
+    incre-=1;
 
     rgbsquare.setPixelColor(q, color); // 'On' pixel at head
     // delay(20);                        // Pause 20 milliseconds (~50 FPS)
