@@ -90,6 +90,7 @@ int mode=MONOMODE;
 unsigned long time;
 unsigned long time_oct;
 unsigned long time_mod;
+unsigned long time_modhold;
 unsigned long time_rgb;
 unsigned long time_thr;
 unsigned long time_gre;
@@ -102,6 +103,7 @@ int modeblink = 100;
 
 float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
 
+bool holdingmode = false;
 bool modechanged = false;
 bool first = true;
 bool blink = true;
@@ -130,9 +132,9 @@ void setup() {
   pinMode( ARCADE6, INPUT_PULLUP );
   pinMode( ARCADE7, INPUT_PULLUP );
 
-  pinMode( GREENPIN, OUTPUT );
-  pinMode( REDPIN, OUTPUT );
-  pinMode( BLUEPIN, OUTPUT );
+  // pinMode( GREENPIN, OUTPUT );
+  // pinMode( REDPIN, OUTPUT );
+  // pinMode( BLUEPIN, OUTPUT );
 
   pinMode( KNOBPIN, INPUT );
   // mode
@@ -160,6 +162,7 @@ void setup() {
   // timeouts
   time_oct = time;
   time_mod = time;
+  time_modhold = time;
   time_rgb = time;
   time_thr = time;
   time_gre = time;
@@ -196,8 +199,6 @@ void loop() {
       clearVoices();
     }
     
-    modeblink = 100;
-
     if(mode == MONOMODE){
       soul.setWave(0,SINE);
       soul.setWave(1,SAW);
@@ -236,7 +237,6 @@ void loop() {
       soul.setLength(2,45);
       soul.setLength(3,70);
     } else if(mode == POLYMODE){
-      modeblink = 700;
 
       soul.setWave(0,TRIANGLE);
       soul.setWave(1,SINE);
@@ -302,7 +302,6 @@ void loop() {
       soul.setLength(2,67);
       soul.setLength(3,70);
     } else if(mode == THERMODE){
-      modeblink = 3000;
 
       soul.setWave(0,SINE);
       soul.setWave(1,SINE);
@@ -366,8 +365,8 @@ void loop() {
 void doKnob(){
 
   // if( (time-time_kno)>=30 ){
-    knob = analogRead(KNOBPIN);
-    Serial.println(knob);
+    // knob = analogRead(KNOBPIN);
+    // Serial.println(knob);
   //   time_kno = time;
 
   //   if(abs(lastknob-knob)>= 40){
@@ -389,17 +388,28 @@ void doKnob(){
 ////////////////// CHECKS  /////////////////
 bool checkMode(){
 
-  if( (time - time_mod) >= 2000 ){
+  if( (time - time_mod) >= 800 ){
 
     if(digitalRead(MODEPIN) == LOW){
 
-      if(gotinput>0){
-        mode = gotinput;
-        gotinput=-1;
-      } else {
-        // increment mode...
-        mode++;
+      if(holdingmode == false){
+        holdingmode = true;
+        time_modhold = time;
       }
+
+      if( holdingmode && (time-time_modhold) >= 200 ){
+        mode++;
+        holdingmode = false;
+      }
+
+      // if(gotinput>0){
+      //   mode = gotinput;
+      // } else {
+        // increment mode...
+
+      // }
+
+      gotinput=-1;
 
       if(mode>9){
         mode = MONOMODE;
@@ -427,7 +437,7 @@ void cleanUpNotes(){
   for(uint8_t i=0; i<4; i++){
 
     // must be finished by now?
-    if( (time-voicetimes[i]) >= 700 ){
+    if( (time-voicetimes[i]) >= 2000 ){
       voicetimes[i] = time;
       voicenotes[i] = -1;  
     }
@@ -466,13 +476,13 @@ uint8_t getAvailVoice(){
 void lightMode(){
   if(mode>=0 && mode < 4){
     // mono
-    modeblink = 1000;
+    modeblink = 700;
   } else if(mode>=4 && mode < 8){
     // poly
-    modeblink = 7000;
+    modeblink = 2000;
   } else {
     // thermal
-    modeblink = 10000;
+    modeblink = 50000;
   }
 
   if((time-time_gre) >= modeblink){
@@ -876,6 +886,10 @@ void handleMNotes() {
     
   }
   
+    
+  if( (time-time_not) >= 1600 ){
+    cleanUpNotes();
+  }
   // !!!might have to wait to retrigger held note if constant retrig sounds bad
     // should be unnecessary because note will play out on its own
     // killMNote();    
