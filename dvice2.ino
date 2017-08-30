@@ -39,14 +39,16 @@
 
 #define MAXNOTELENGTH 3000
 
-// sets of three chords        Cmaj       Emaj       Fmaj       Amin
-uint8_t thermchords [4][12] = {24,28,31,  28,32,35,  29,33,36,  21,24,28},
-                              // Bmaj     Dmaj       Emin       Bmin I guess
-                              {47,51,54,  50,54,57,  52,55,59,  47,50,54},
-                              //C# Eish   Eish       A fifths   Emaj
-                              {25,28,30,  28,33,36,  33,38,43,  28,30,28},
+// sets of three chords         Cmaj       Emaj       Fmaj       Amin
+uint8_t thermchords [4][12] = {
+                                {24,28,31,  28,32,35,  29,33,36,  21,24,28},
+                                // Bmaj     Dmaj       Emin       Bmin I guess
+                                {47,51,54,  50,54,57,  52,55,59,  47,50,54},
+                                //C# Eish   Eish       A fifths   Emaj
+                                {25,28,30,  28,33,36,  33,38,43,  28,30,28},
 
-                              {24,28,31,  28,32,35,  29,33,36,  21,24,28};
+                                {24,28,31,  28,32,35,  29,33,36,  21,24,28}
+                              };
 
 // current quad were playing from
 uint8_t current_quad=0;
