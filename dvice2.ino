@@ -28,14 +28,32 @@
 #define BLUEPIN A0
 #define KNOBPIN A2
 
+#define QUADRANT1 1
+#define QUADRANT2 0
+#define QUADRANT3 3
+#define QUADRANT4 2
+
 #define MONOMODE 0
 #define POLYMODE 4
 #define THERMODE 8
 
 #define MAXNOTELENGTH 3000
 
-// RGB
+// sets of three chords        Cmaj       Emaj       Fmaj       Amin
+uint8_t thermchords [4][12] = {24,28,31,  28,32,35,  29,33,36,  21,24,28},
+                              // Bmaj     Dmaj       Emin       Bmin I guess
+                              {47,51,54,  50,54,57,  52,55,59,  47,50,54},
+                              //C# Eish   Eish       A fifths   Emaj
+                              {25,28,30,  28,33,36,  33,38,43,  28,30,28},
 
+                              {24,28,31,  28,32,35,  29,33,36,  21,24,28};
+
+// current quad were playing from
+uint8_t current_quad=0;
+// index of  thermal note currently playing
+uint8_t tplaying=0;
+
+// RGB
 Adafruit_DotStar rgbsquare = Adafruit_DotStar(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
 
 // Thermal
@@ -70,6 +88,8 @@ unsigned long time_thr;
 unsigned long time_gre;
 unsigned long time_not;
 unsigned long time_kno;
+unsigned long time_tstart;
+unsigned long time_tplay;
 
 int modeblink = 0;
 
@@ -137,6 +157,8 @@ void setup() {
   time_thr = time;
   time_gre = time;
   time_kno = time;
+  time_tstart = time;
+  time_tplay = time;
 
   for(int i=0; i<4;i++){
     voicetimes[i]=time;
@@ -166,116 +188,130 @@ void loop() {
       clearVoices();
     }
     
-      modeblink = 0;
+    modeblink = 0;
 
-      if(mode == MONOMODE){
-        soul.setWave(0,SINE);
-        soul.setWave(1,SAW);
-        soul.setWave(2,SINE);
-        soul.setWave(3,SINE);
-        soul.setLength(0,60);
-        soul.setLength(1,60);
-        soul.setLength(2,60);
-        soul.setLength(3,60);  
-      } else if(mode == 1){
-        soul.setWave(0,SQUARE);
-        soul.setWave(1,TRIANGLE);
-        soul.setWave(2,RAMP);
-        soul.setWave(3,TRIANGLE);
-        soul.setLength(0,20);
-        soul.setLength(1,40);
-        soul.setLength(2,75);
-        soul.setLength(3,60);
-      } else if(mode == 2){
-        soul.setWave(0,SAW);
-        soul.setWave(1,TRIANGLE);
-        soul.setWave(2,SAW);
-        soul.setWave(3,SINE);
-        soul.setLength(0,18);
-        soul.setLength(1,18);
-        soul.setLength(2,18);
-        soul.setLength(3,18);
-        soul.setMod(0, 50);
-      } else if(mode == 3){
-        soul.setWave(0,SINE);
-        soul.setWave(1,TRIANGLE);
-        soul.setWave(2,SINE);
-        soul.setWave(3,TRIANGLE);
-        soul.setLength(0,82);
-        soul.setLength(1,120);
-        soul.setLength(2,45);
-        soul.setLength(3,100);
-      } else if(mode == POLYMODE){
-        modeblink = 2000;
+    if(mode == MONOMODE){
+      soul.setWave(0,SINE);
+      soul.setWave(1,SAW);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SINE);
+      soul.setLength(0,60);
+      soul.setLength(1,60);
+      soul.setLength(2,60);
+      soul.setLength(3,60);  
+    } else if(mode == 1){
+      soul.setWave(0,SQUARE);
+      soul.setWave(1,TRIANGLE);
+      soul.setWave(2,RAMP);
+      soul.setWave(3,TRIANGLE);
+      soul.setLength(0,20);
+      soul.setLength(1,40);
+      soul.setLength(2,75);
+      soul.setLength(3,60);
+    } else if(mode == 2){
+      soul.setWave(0,SAW);
+      soul.setWave(1,TRIANGLE);
+      soul.setWave(2,SAW);
+      soul.setWave(3,SINE);
+      soul.setLength(0,18);
+      soul.setLength(1,18);
+      soul.setLength(2,18);
+      soul.setLength(3,18);
+      soul.setMod(0, 50);
+    } else if(mode == 3){
+      soul.setWave(0,SINE);
+      soul.setWave(1,TRIANGLE);
+      soul.setWave(2,SINE);
+      soul.setWave(3,TRIANGLE);
+      soul.setLength(0,82);
+      soul.setLength(1,80);
+      soul.setLength(2,45);
+      soul.setLength(3,70);
+    } else if(mode == POLYMODE){
+      modeblink = 2000;
 
-        soul.setWave(0,TRIANGLE);
-        soul.setWave(1,SINE);
-        soul.setWave(2,TRIANGLE);
-        soul.setWave(3,SINE);
+      soul.setWave(0,TRIANGLE);
+      soul.setWave(1,SINE);
+      soul.setWave(2,TRIANGLE);
+      soul.setWave(3,SINE);
 
-        soul.setEnvelope(0,ENVELOPE2);
-        soul.setEnvelope(1,ENVELOPE2);
-        soul.setEnvelope(2,ENVELOPE3);
-        soul.setEnvelope(3,ENVELOPE1);
+      soul.setEnvelope(0,ENVELOPE2);
+      soul.setEnvelope(1,ENVELOPE2);
+      soul.setEnvelope(2,ENVELOPE3);
+      soul.setEnvelope(3,ENVELOPE1);
 
-        soul.setLength(0,100);
-        soul.setLength(1,80);
-        soul.setLength(2,110);
-        soul.setLength(3,70);
-        Serial.println("Set Waves Poly");
-      } else if(mode == 5){
-        modeblink = 2000;
+      soul.setLength(0,70);
+      soul.setLength(1,80);
+      soul.setLength(2,65);
+      soul.setLength(3,70);
+      Serial.println("Set Waves Poly");
+    } else if(mode == 5){
+      modeblink = 2000;
 
-        soul.setWave(0,SQUARE);
-        soul.setWave(1,SQUARE);
-        soul.setWave(2,SQUARE);
-        soul.setWave(3,SINE);
+      soul.setWave(0,SQUARE);
+      soul.setWave(1,SQUARE);
+      soul.setWave(2,SQUARE);
+      soul.setWave(3,SINE);
 
-        soul.setEnvelope(0,ENVELOPE0);
-        soul.setEnvelope(1,ENVELOPE0);
-        soul.setEnvelope(2,ENVELOPE0);
-        soul.setEnvelope(3,ENVELOPE0);
+      soul.setEnvelope(0,ENVELOPE0);
+      soul.setEnvelope(1,ENVELOPE0);
+      soul.setEnvelope(2,ENVELOPE0);
+      soul.setEnvelope(3,ENVELOPE0);
 
-        soul.setLength(0,30);
-        soul.setLength(1,40);
-        soul.setLength(2,50);
-        soul.setLength(3,10);
-      } else if(mode == 6){
-        modeblink = 2000;
+      soul.setLength(0,30);
+      soul.setLength(1,40);
+      soul.setLength(2,50);
+      soul.setLength(3,10);
+    } else if(mode == 6){
+      modeblink = 2000;
 
-        soul.setWave(0,SAW);
-        soul.setWave(1,TRIANGLE);
-        soul.setWave(2,SAW);
-        soul.setWave(3,RAMP);
+      soul.setWave(0,SAW);
+      soul.setWave(1,TRIANGLE);
+      soul.setWave(2,SAW);
+      soul.setWave(3,RAMP);
 
-        soul.setEnvelope(0,ENVELOPE3);
-        soul.setEnvelope(1,ENVELOPE2);
-        soul.setEnvelope(2,ENVELOPE1);
-        soul.setEnvelope(3,ENVELOPE1);
+      soul.setEnvelope(0,ENVELOPE3);
+      soul.setEnvelope(1,ENVELOPE2);
+      soul.setEnvelope(2,ENVELOPE1);
+      soul.setEnvelope(3,ENVELOPE1);
 
-        soul.setLength(0,70);
-        soul.setLength(1,110);
-        soul.setLength(2,110);
-        soul.setLength(3,130);
-      } else if(mode == 7){
-        modeblink = 2000;
+      soul.setLength(0,70);
+      soul.setLength(1,60);
+      soul.setLength(2,60);
+      soul.setLength(3,85);
+    } else if(mode == 7){
+      modeblink = 2000;
 
-        soul.setWave(0,RAMP);
-        soul.setWave(1,RAMP);
-        soul.setWave(2,SINE);
-        soul.setWave(3,SINE);
+      soul.setWave(0,RAMP);
+      soul.setWave(1,RAMP);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SINE);
 
-        soul.setEnvelope(0,ENVELOPE3);
-        soul.setEnvelope(1,ENVELOPE2);
-        soul.setEnvelope(2,ENVELOPE3);
-        soul.setEnvelope(3,ENVELOPE0);
+      soul.setEnvelope(0,ENVELOPE3);
+      soul.setEnvelope(1,ENVELOPE2);
+      soul.setEnvelope(2,ENVELOPE3);
+      soul.setEnvelope(3,ENVELOPE0);
 
-        soul.setLength(0,35);
-        soul.setLength(1,23);
-        soul.setLength(2,67);
-        soul.setLength(3,70);
-      }
-    // } else if(mode == THERMODE){
+      soul.setLength(0,35);
+      soul.setLength(1,23);
+      soul.setLength(2,67);
+      soul.setLength(3,70);
+    } else if(mode == THERMODE){
+      soul.setWave(0,SINE);
+      soul.setWave(1,SINE);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SINE);
+
+      soul.setEnvelope(0,ENVELOPE1);
+      soul.setEnvelope(1,ENVELOPE2);
+      soul.setEnvelope(2,ENVELOPE1);
+      soul.setEnvelope(3,ENVELOPE0);
+
+      soul.setLength(0,65);
+      soul.setLength(1,63);
+      soul.setLength(2,83);
+      soul.setLength(3,60);
+    }
 
     modechanged = false;
     first = false;
@@ -312,8 +348,8 @@ void loop() {
     case 6:
     case 7: polyMode();
             break;
-    // case 2: thermalMode();
-    //         break;            
+    case 8: thermalMode();
+            break;            
   }
 
 
@@ -588,15 +624,19 @@ void polyMode() {
 }
 
 void thermalMode() {
-  // wtf!
-  getThermal();
+  // wtf bruh!
   uint8_t avg_global;
   uint8_t avg_quad [4];
   uint8_t quadindex = 0;
   uint8_t quadmax = 0;
   uint8_t i = 0;
 
-  // distribute thermal values
+  // collect inputted notes in inputs array
+  for(i=0; i<8; i++){
+    arcades[i] = getArcade( arcadepins[i] );
+  }
+
+  // distribute thermal values over quadrants
   for(i; i<NUMPIXELS; i++){
     avg_global += thermal[i];
     
@@ -615,17 +655,45 @@ void thermalMode() {
 
   // calc averages
   avg_global = avg_global/64;
-  avg_quad[0] = avg_quad[0]/16;
-  avg_quad[1] = avg_quad[1]/16;
-  avg_quad[2] = avg_quad[2]/16;
-  avg_quad[3] = avg_quad[3]/16;
 
-  // pick hot quadrant
-  for(i=0; i<4; i++){
-    if( avg_quad[i] > quadmax ){
-      quadmax = avg_quad[i];
+  // interupt
+  if( (time-time_tstart) >= 3000 ){
+  
+    avg_quad[0] = avg_quad[0]/16;
+    avg_quad[1] = avg_quad[1]/16;
+    avg_quad[2] = avg_quad[2]/16;
+    avg_quad[3] = avg_quad[3]/16;
+
+    // pick hot quadrant
+    for(i=0; i<4; i++){
+      if( avg_quad[i] > quadmax ){
+
+        // get highest average
+        quadmax = avg_quad[i];
+        // set to highest average quadrant
+        current_quad = i;
+      }
     }
+
+    time_tstart = time;
   }
+
+  // play da notes
+  if( current_quad<5 && (time-time_tplay) >= 2000 ){
+
+    playChord(current_quad, tplaying);
+    tplaying += 3;
+
+    time_tplay = time;
+  }
+
+  // played last chord, stop!
+  if(tplaying>9){
+    tplaying=0;
+    current_quad=5;
+  }
+
+  handleTNotes();
 
   // if quadrant changed or nothing playing
     // start new quadrant
@@ -639,6 +707,46 @@ void thermalMode() {
 
 
 
+}
+
+void handleTNotes(){
+  int new_note = -1;
+  uint8_t numheld = 0;
+
+  for(uint8_t i=0; i<8; i++){
+
+    // low is on baby
+    if(arcades[i] == LOW){
+      new_note = inputToNote(i);
+
+      if(voicenotes[0]==new_note){
+        // Serial.println("got keepplaying");
+
+        if( ( time - voicetimes[0] ) >= 700 ){
+          // retrigger
+          playTNote(new_note);
+        }
+
+      } else if( numheld == 1 && new_note >= 0) {
+        // Serial.println("playing new note");
+        voicenotes[0] = new_note;
+        playTNote(new_note);
+     
+      } else if( voicetimes[0] > 0 && ( time - voicetimes[0] ) >= 6000) {
+        // Serial.println("kill note tiemrs");
+        voicetimes[0] = 0;
+        voicenotes[0] = -1;
+        // digitalWrite(13, LOW);
+        // killMNote();
+      }
+
+    }
+  }
+
+}
+
+void playTNote(int note){
+  soul.mTrigger(4,note);
 }
 
 //////////// INPUT RELATED FUNCTIONS /////////
@@ -698,12 +806,15 @@ void handleMNotes() {
     }
 
   } else if( (top+bottom) == 1 && new_note >= 0) {
-    // Serial.println("playing new note");
+
+    // is dis wrong??
+    voicenotes[0] = new_note;
+
     playMNote(new_note);
  
   } else if( voicetimes[0] > 0 && ( time - voicetimes[0] ) >= 6000) {
     // Serial.println("kill note tiemrs");
-     voicetimes[0] = 0;
+    voicetimes[0] = 0;
     voicenotes[0] = -1;
     // digitalWrite(13, LOW);
     // killMNote();
@@ -743,6 +854,15 @@ void playMNote(int note) {
   for(int i=0; i<4; i++){
     // Serial.println("verrrr GOOD play "+note);
     soul.mTrigger(i,note);
+  }
+}
+
+void playChord(uint8_t set, uint8_t chordstart) {
+  for(uint8_t i=0; i<3; i++){
+    // Serial.println("verrrr GOOD play "+note);
+
+    // play each tone of note
+    soul.mTrigger(i, thermchords[ set ][ chordstart+i ]);
   }
 }
 
@@ -902,15 +1022,15 @@ void lightRGB(char * text){
   // thermal
   for(int q=0; q<64; q++){
     // get next r,g,b
-    
 
     if((rowbegin+incre)==rowbegin){
       incre=7;
       rowbegin+=8;
     }
 
-Serial.println("HEAR HERE ");
-    Serial.println(rowbegin+incre);
+    // Serial.println("HEAR HERE ");
+    // Serial.println(rowbegin+incre);
+
     // invert lr because whoopsie!
     color = pixelToColor(thermal[ rowbegin+incre ]);
     incre-=1;
