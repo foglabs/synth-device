@@ -2,6 +2,7 @@
 //#include "notes.h"
 
 #include <Adafruit_DotStar.h>
+#include <Adafruit_GFX.h>
 #include <SPI.h>
 
 #include <Wire.h>
@@ -34,8 +35,8 @@
 #define QUADRANT4 2
 
 #define MONOMODE 0
-#define POLYMODE 4
-#define THERMODE 8
+#define POLYMODE 8
+#define THERMODE 15
 
 #define MAXNOTELENGTH 3000
 
@@ -99,7 +100,7 @@ unsigned long time_kno;
 unsigned long time_tstart;
 unsigned long time_tplay;
 
-int modeblink = 100;
+int modeblink = 500;
 
 float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
 
@@ -136,7 +137,7 @@ void setup() {
   // pinMode( REDPIN, OUTPUT );
   // pinMode( BLUEPIN, OUTPUT );
 
-  pinMode( KNOBPIN, INPUT );
+  // pinMode( KNOBPIN, INPUT );
   // mode
 
   // RGB object
@@ -200,14 +201,10 @@ void loop() {
     }
     
     if(mode == MONOMODE){
-      soul.setWave(0,SINE);
-      soul.setWave(1,SAW);
-      soul.setWave(2,SINE);
-      soul.setWave(3,SINE);
-      soul.setLength(0,60);
-      soul.setLength(1,60);
-      soul.setLength(2,60);
-      soul.setLength(3,60);  
+      soul.setUpVoice(0,SINE,ENVELOPE0,60,64);
+      soul.setUpVoice(1,SAW,ENVELOPE0,60,64);
+      soul.setUpVoice(2,SINE,ENVELOPE0,60,64);
+      soul.setUpVoice(3,SINE,ENVELOPE0,60,64);
     } else if(mode == 1){
       soul.setWave(0,SQUARE);
       soul.setWave(1,TRIANGLE);
@@ -226,7 +223,6 @@ void loop() {
       soul.setLength(1,18);
       soul.setLength(2,18);
       soul.setLength(3,18);
-      soul.setMod(0, 50);
     } else if(mode == 3){
       soul.setWave(0,SINE);
       soul.setWave(1,TRIANGLE);
@@ -236,6 +232,60 @@ void loop() {
       soul.setLength(1,80);
       soul.setLength(2,45);
       soul.setLength(3,70);
+    } else if(mode == 4){
+      soul.setWave(0,SINE);
+      soul.setWave(1,TRIANGLE);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SAW);
+      soul.setLength(0,42);
+      soul.setLength(1,82);
+      soul.setLength(2,45);
+      soul.setLength(3,80);
+
+
+      soul.setEnvelope(0,ENVELOPE0);
+      // soul.setEnvelope(1,ENVELOPE2);
+      soul.setEnvelope(2,ENVELOPE0);
+      soul.setEnvelope(3,ENVELOPE1);
+    } else if(mode == 5){
+      soul.setWave(0,SQUARE);
+      soul.setWave(1,SAW);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SAW);
+      soul.setLength(0,22);
+      soul.setLength(1,40);
+      soul.setLength(2,45);
+      soul.setLength(3,90);
+
+      soul.setEnvelope(0,ENVELOPE3);
+      soul.setEnvelope(1,ENVELOPE3);
+      soul.setEnvelope(2,ENVELOPE3);
+      soul.setEnvelope(3,ENVELOPE0);
+    } else if(mode == 6){
+      soul.setWave(0,SAW);
+      soul.setWave(1,SAW);
+      soul.setWave(2,SAW);
+      soul.setWave(3,SAW);
+      soul.setLength(0,24);
+      soul.setLength(1,48);
+      soul.setLength(2,64);
+      soul.setLength(3,96);
+
+      soul.setEnvelope(0,ENVELOPE1);
+      soul.setEnvelope(1,ENVELOPE1);
+      soul.setEnvelope(2,ENVELOPE1);
+      soul.setEnvelope(3,ENVELOPE1);
+    } else if(mode == 7){
+      soul.setWave(0,SQUARE);
+      soul.setWave(1,SQUARE);
+      soul.setWave(2,SINE);
+      soul.setWave(3,TRIANGLE);
+      soul.setLength(0,52);
+      soul.setLength(1,50);
+      soul.setLength(2,95);
+      soul.setLength(3,80);
+
+
     } else if(mode == POLYMODE){
 
       soul.setWave(0,TRIANGLE);
@@ -253,7 +303,7 @@ void loop() {
       soul.setLength(2,65);
       soul.setLength(3,70);
       Serial.println("Set Waves Poly");
-    } else if(mode == 5){
+    } else if(mode == 9){
 
       soul.setWave(0,SQUARE);
       soul.setWave(1,SQUARE);
@@ -269,7 +319,7 @@ void loop() {
       soul.setLength(1,40);
       soul.setLength(2,50);
       soul.setLength(3,10);
-    } else if(mode == 6){
+    } else if(mode == 10){
 
       soul.setWave(0,SAW);
       soul.setWave(1,TRIANGLE);
@@ -285,7 +335,7 @@ void loop() {
       soul.setLength(1,60);
       soul.setLength(2,60);
       soul.setLength(3,85);
-    } else if(mode == 7){
+    } else if(mode == 11){
 
       soul.setWave(0,RAMP);
       soul.setWave(1,RAMP);
@@ -301,6 +351,55 @@ void loop() {
       soul.setLength(1,23);
       soul.setLength(2,67);
       soul.setLength(3,70);
+    } else if(mode == 12){
+
+      soul.setWave(0,SINE);
+      soul.setWave(1,SINE);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SINE);
+
+      soul.setEnvelope(0,ENVELOPE0);
+      soul.setEnvelope(1,ENVELOPE0);
+      soul.setEnvelope(2,ENVELOPE0);
+      soul.setEnvelope(3,ENVELOPE0);
+
+      soul.setLength(0,68);
+      soul.setLength(1,72);
+      soul.setLength(2,64);
+      soul.setLength(3,76);
+    } else if(mode == 13){
+
+      soul.setWave(0,SQUARE);
+      soul.setWave(1,SAW);
+      soul.setWave(2,TRIANGLE);
+      soul.setWave(3,SAW);
+
+      soul.setEnvelope(0,ENVELOPE3);
+      soul.setEnvelope(1,ENVELOPE3);
+      soul.setEnvelope(2,ENVELOPE3);
+      soul.setEnvelope(3,ENVELOPE2);
+
+      soul.setLength(0,80);
+      soul.setLength(1,20);
+      soul.setLength(2,80);
+      soul.setLength(3,80);
+    } else if(mode == 14){
+
+      soul.setWave(0,NOISE);
+      soul.setWave(1,NOISE);
+      soul.setWave(2,SINE);
+      soul.setWave(3,SINE);
+
+      soul.setEnvelope(0,ENVELOPE3);
+      soul.setEnvelope(1,ENVELOPE3);
+      soul.setEnvelope(2,ENVELOPE0);
+      soul.setEnvelope(3,ENVELOPE0);
+
+      soul.setLength(0,85);
+      soul.setLength(1,23);
+      soul.setLength(2,37);
+      soul.setLength(3,70);
+
     } else if(mode == THERMODE){
 
       soul.setWave(0,SINE);
@@ -323,23 +422,19 @@ void loop() {
     first = false;
   }
 
-  // if( (time - time_gre) >= fadespeed ){
-  //   if(change){
-  //     fade+=1;
-  //     if(fade>255){
-  //       fade=0;
-  //     }
+  // if( (time - time_gre) >= modeblink ){
 
-  //     change = false;
+  //   if(blink){
+  //     digitalWrite(GREENPIN, HIGH);
   //   } else {
-  //     change = true;
+  //     digitalWrite(GREENPIN, LOW);
   //   }
+  //   blink = !blink;
+
 
   //   time_gre = time;
   // }
 
-  // analogWrite(GREENPIN, fade);
-  
   // Serial.println(analogRead(KNOBPIN));  
   
   // // do my mode boy
@@ -347,19 +442,26 @@ void loop() {
     case 0:
     case 1:
     case 2:
-    case 3: monoMode();
-            break;
+    case 3:
     case 4:
     case 5:
     case 6:
-    case 7: polyMode();
+    case 7: monoMode();
             break;
-    case 8: thermalMode();
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14: polyMode();
+            break;
+    case 15: thermalMode();
             break;            
   }
 
 
-  doKnob();
+  // doKnob();
 }
 
 void doKnob(){
@@ -392,15 +494,16 @@ bool checkMode(){
 
     if(digitalRead(MODEPIN) == LOW){
 
-      if(holdingmode == false){
-        holdingmode = true;
-        time_modhold = time;
-      }
+      // if(holdingmode == false){
+      //   holdingmode = true;
+      //   time_modhold = time;
+      // }
 
-      if( holdingmode && (time-time_modhold) >= 200 ){
+      // if( holdingmode && (time-time_modhold) >= 800 ){
+
         mode++;
-        holdingmode = false;
-      }
+      //   holdingmode = false;
+      // }
 
       // if(gotinput>0){
       //   mode = gotinput;
@@ -409,15 +512,17 @@ bool checkMode(){
 
       // }
 
-      gotinput=-1;
+      // gotinput=-1;
 
-      if(mode>9){
+      if(mode>15){
         mode = MONOMODE;
       }
 
-      time_mod = time;
       return true;
     }
+
+    time_mod = time;
+
   }
 
   return false;
@@ -474,15 +579,15 @@ uint8_t getAvailVoice(){
 }
 
 void lightMode(){
-  if(mode>=0 && mode < 4){
+  if(mode>=0 && mode < 8){
     // mono
-    modeblink = 700;
-  } else if(mode>=4 && mode < 8){
+    modeblink = 500;
+  } else if(mode>=8 && mode < 15){
     // poly
-    modeblink = 2000;
+    modeblink = 1000;
   } else {
     // thermal
-    modeblink = 50000;
+    modeblink = 2000;
   }
 
   if((time-time_gre) >= modeblink){
@@ -535,24 +640,8 @@ void lightMode(){
 
     }
 
-
     blink = !blink;
-
-  //   if(blink == true){
-  //     blink = false;
-  //     digitalWrite(GREENPIN, HIGH);
-  //     digitalWrite(REDPIN, LOW);
-  //     digitalWrite(BLUEPIN, HIGH);
-
-  //   } else {
-  //     blink=true;
-  //     digitalWrite(GREENPIN, LOW);
-  //     digitalWrite(REDPIN, HIGH);
-  //     digitalWrite(BLUEPIN, HIGH);
-  //   }
   }
-
-
 }
 
 void getArcades(){
@@ -778,9 +867,9 @@ uint8_t getArcade(uint8_t pin) {
   uint8_t inp = digitalRead(pin);
   
   // grab for mode change
-  if(inp == LOW){
-    gotinput = apinToNum(pin);
-  }
+  // if(inp == LOW){
+  //   gotinput = apinToNum(pin);
+  // }
 
   return inp;
 }
