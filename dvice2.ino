@@ -259,18 +259,18 @@ void loop() {
       soul.setupVoice(3,SINE,60,ENVELOPE1,70,64);
       Serial.println("Set Waves Poly");
     } else if(mode == 9){
-      soul.setupVoice(0,SQUARE,60,ENVELOPE0,30,64);
-      soul.setupVoice(1,SQUARE,60,ENVELOPE0,40,64);
+      soul.setupVoice(0,SQUARE,60,ENVELOPE0,60,64);
+      soul.setupVoice(1,SQUARE,60,ENVELOPE0,80,64);
       soul.setupVoice(2,SQUARE,60,ENVELOPE0,50,64);
-      soul.setupVoice(3,SINE,60,ENVELOPE0,10,64);
+      soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
     } else if(mode == 10){
       soul.setupVoice(0,SAW,60,ENVELOPE3,70,64);
-      soul.setupVoice(1,TRIANGLE,60,ENVELOPE2,60,64);
+      soul.setupVoice(1,SAW,60,ENVELOPE2,60,64);
       soul.setupVoice(2,SAW,60,ENVELOPE1,60,64);
-      soul.setupVoice(3,RAMP,60,ENVELOPE1,85,64);
+      soul.setupVoice(3,SAW,60,ENVELOPE1,85,64);
     } else if(mode == 11){
-      soul.setupVoice(0,SAW,60,ENVELOPE3,35,64);
-      soul.setupVoice(1,SAW,60,ENVELOPE2,23,64);
+      soul.setupVoice(0,SAW,60,ENVELOPE3,65,64);
+      soul.setupVoice(1,SAW,60,ENVELOPE2,75,64);
       soul.setupVoice(2,SINE,60,ENVELOPE3,67,64);
       soul.setupVoice(3,SINE,60,ENVELOPE0,70,64);
     } else if(mode == 12){
@@ -279,13 +279,13 @@ void loop() {
       soul.setupVoice(2,SINE,60,ENVELOPE0,64,64);
       soul.setupVoice(3,SINE,60,ENVELOPE0,76,64);
     } else if(mode == 13){
-      soul.setupVoice(0,SQUARE,60,ENVELOPE3,80,64);
-      soul.setupVoice(1,SAW,60,ENVELOPE3,20,64);
-      soul.setupVoice(2,TRIANGLE,60,ENVELOPE3,80,64);
+      soul.setupVoice(0,SQUARE,60,ENVELOPE2,80,64);
+      soul.setupVoice(1,SAW,60,ENVELOPE2,50,64);
+      soul.setupVoice(2,TRIANGLE,60,ENVELOPE2,80,64);
       soul.setupVoice(3,SAW,60,ENVELOPE2,80,64);
     } else if(mode == 14){
       soul.setupVoice(0,TRIANGLE,60,ENVELOPE3,42,64);
-      soul.setupVoice(1,TRIANGLE,60,ENVELOPE3,12,64);
+      soul.setupVoice(1,TRIANGLE,60,ENVELOPE3,52,64);
       soul.setupVoice(2,SINE,60,ENVELOPE0,45,64);
       soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
     } else if(mode == THERMODE){
@@ -700,7 +700,7 @@ void handleCNotes() {
 
   if(voicenotes[0]==new_note){
     // Serial.println("got keepplaying");
-    if( ( time - voicetimes[0] ) >= 60 ){
+    if( ( time - voicetimes[0] ) >= 790 ){
 
       // retrigger
       if(new_note<4){
@@ -768,6 +768,10 @@ void thermalMode() {
   uint8_t i = 0;
   uint8_t highest = 0;
 
+  uint8_t avg_row = 0;
+  uint8_t highrow = 0;
+  uint8_t highrowavg = 0;
+
 
   if( (time - time_thr) >= 60){
     getThermal();
@@ -793,14 +797,25 @@ void thermalMode() {
       quadindex += 1;
     }
 
+    avg_row += thermal[i];
     avg_quad[quadindex] += thermal[i];
+
+    // get row averge on last cell of row
+    if( (i+1) % 8 == 0 ){
+      avg_row = avg_row/8;
+
+      if(avg_row > highrowavg){
+        highrowavg = avg_row;
+        highrow = i;
+      }
+    }
   }
 
   // calc averages
   avg_global = avg_global/64;
 
 
-  if(highest > 25){
+  if(highest > 20){
     // interupt
     if( (time-time_tstart) >= 1800 ){
     
@@ -822,6 +837,8 @@ void thermalMode() {
 
       time_tstart = time;
     }    
+  } else {
+    current_quad = 5;
   }
 
   // play da notes
@@ -856,14 +873,10 @@ void thermalMode() {
     // play if ready
 
   // play relevant flourish notes
-
-
-
 }
 
 void handleTNotes(){
   int new_note = -1;
-  uint8_t numheld = 0;
 
   for(uint8_t i=0; i<8; i++){
 
@@ -881,26 +894,19 @@ void handleTNotes(){
           voicetimes[0] = time;
         }
 
-      } else if( new_note >= 0) { // numheld == 1 &&
-        // Serial.println("playing new note");
+      } else if( new_note >= 0) {
         voicenotes[0] = new_note;
         playTNote(new_note);
      
-      } //else if( voicetimes[0] > 0 && ( time - voicetimes[0] ) >= 6000) {
-        // Serial.println("kill note tiemrs");
-        // voicetimes[0] = 0;
-        // voicenotes[0] = -1;
-        // digitalWrite(13, LOW);
-        // killMNote();
-      // }
-
+      } 
     }
   }
 
 }
 
 void playTNote(int note){
-  soul.mTrigger(4,note);
+  // are we the last. living voice.
+  soul.mTrigger(3,note);
 }
 
 //////////// INPUT RELATED FUNCTIONS /////////
@@ -1066,12 +1072,9 @@ void handlePNotes() {
 
       if(numstaged < 4){
 
-
-        if(q!= 1){
         voicestaged[numstaged] = inputToNote(q);
         numstaged++;
           
-        }
         
         // Serial.print("New note ");
         // Serial.println(voicestaged[q]);
