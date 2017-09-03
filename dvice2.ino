@@ -118,7 +118,7 @@ bool moddisplay = false;
 int knob = 0;
 int lastknob = 0;
 
-uint8_t avg_global=0;
+uint16_t avg_global=0;
 
 ///////////////////////////////////////////
 
@@ -195,8 +195,8 @@ void loop() {
   time = millis();
 
   getArcades();
-  modechanged = checkMode();
   lightMode();
+  modechanged = checkMode();
 
   // Serial.print("Mode is now ");
   // Serial.println(mode);
@@ -304,10 +304,10 @@ void loop() {
     first = false;
   }
 
-  if( time-time_domod >= 200 ){
-    // doMod();
-    time_domod=time;
-  }
+  // if( time-time_domod >= 200 ){
+  //   doMod();
+  //   time_domod=time;
+  // }
   
   // // do my mode boy
   switch(mode){
@@ -334,18 +334,17 @@ void loop() {
             break;
   }
 
-
-
   // doKnob();
 }
 
 void doMod(){
-  uint16_t mod = 0;
+  uint16_t mod = floor( 64+((80-64)/(20-40))*(avg_global-20) );
+
 // 20-40
-// 0-1023
+// 0-128
 // output = output_start + ((output_end - output_start) / (input_end - input_start)) * (input - input_start)
   for(uint8_t i=0; i<4; i++){
-    soul.setMod(i, round((1023 / 20) * ( avg_global - 20)) );
+    soul.setMod(i, mod );
   }
 }
 
@@ -379,31 +378,15 @@ bool checkMode(){
     moddisplay = false;
   }
 
-
   if(digitalRead(MODEPIN) == LOW){
+
+    digitalWrite(REDPIN, HIGH);
+    digitalWrite(BLUEPIN, HIGH);
+    digitalWrite(GREENPIN, HIGH);
 
     if( (time - time_mod) >= 360 ){
 
-
-      // if(holdingmode == false){
-      //   holdingmode = true;
-      //   time_modhold = time;
-      // }
-
-      // if( holdingmode && (time-time_modhold) >= 800 ){
-
-        mode++;
-      //   holdingmode = false;
-      // }
-
-      // if(gotinput>0){
-      //   mode = gotinput;
-      // } else {
-        // increment mode...
-
-      // }
-
-      // gotinput=-1;
+      mode++;
 
       if(mode>16){
         mode = MONOMODE;
@@ -762,15 +745,16 @@ void handleCNotes() {
 void thermalMode() {
   // wtf bruh!
   
-  uint8_t avg_quad [4];
-  uint8_t quadindex = 0;
-  uint8_t quadmax = 0;
+  // uint8_t avg_quad [4];
+  // uint8_t quadindex = 0;
+  // uint8_t quadmax = 0;
+
+  uint16_t avg_rows [4];
+  uint16_t avg_row = 0;
+  uint8_t rowmax = 0;
   uint8_t i = 0;
   uint8_t highest = 0;
-
-  uint8_t avg_row = 0;
-  uint8_t highrow = 0;
-  uint8_t highrowavg = 0;
+  uint8_t rowcount = 0;
 
 
   if( (time - time_thr) >= 60){
@@ -787,52 +771,80 @@ void thermalMode() {
       highest = thermal[i];
     }
     
-    if(i<32){
-      quadindex = 0;
-    } else {
-      quadindex = 2;
-    }
+    // if(i<32){
+    //   quadindex = 0;
+    // } else {
+    //   quadindex = 2;
+    // }
 
-    if( (i%8)>3 ){
-      quadindex += 1;
-    }
+    // if( (i%8)>3 ){
+    //   quadindex += 1;
+    // }
+    
+    // rip quad
+    // avg_quad[quadindex] += thermal[i];
 
     avg_row += thermal[i];
-    avg_quad[quadindex] += thermal[i];
 
-    // get row averge on last cell of row
-    if( (i+1) % 8 == 0 ){
-      avg_row = avg_row/8;
-
-      if(avg_row > highrowavg){
-        highrowavg = avg_row;
-        highrow = i;
-      }
+    // get row averge on last cell of double row
+    if( (i+1) % 16 == 0 ){
+      avg_rows[rowcount] = avg_row/16;
+      rowcount++;
+      avg_row = 0;
     }
   }
 
   // calc averages
   avg_global = avg_global/64;
 
-
   if(highest > 20){
     // interupt
     if( (time-time_tstart) >= 1800 ){
     
-      avg_quad[0] = avg_quad[0]/16;
-      avg_quad[1] = avg_quad[1]/16;
-      avg_quad[2] = avg_quad[2]/16;
-      avg_quad[3] = avg_quad[3]/16;
+      /////////// Quadrants dont work that well :(
+      // avg_quad[0] = avg_quad[0]/16;
+      // avg_quad[1] = avg_quad[1]/16;
+      // avg_quad[2] = avg_quad[2]/16;
+      // avg_quad[3] = avg_quad[3]/16;
 
-      // pick hot quadrant
+      // // pick hot quadrant
+      // for(i=0; i<4; i++){
+      //   if( avg_quad[i] > quadmax ){
+
+      //     // get highest average
+      //     quadmax = avg_quad[i];
+      //     // set to highest average quadrant
+      //     current_quad = i;
+      //   }
+      // }
+
       for(i=0; i<4; i++){
-        if( avg_quad[i] > quadmax ){
-
-          // get highest average
-          quadmax = avg_quad[i];
-          // set to highest average quadrant
+        if(avg_rows[i] > rowmax){
+          rowmax = avg_rows[i];
           current_quad = i;
+
+
+          // 0 is greater than 1,2,3
+
+          // 1 is greater than 2,3
+
+          // 2 is greater than 3
+
+          // 3 is greater than presumed baseline
+
+
         }
+      }
+
+      // little less than human skin
+      if( avg_rows[3] > 28){
+        current_quad = 3;
+      } else if(avg_rows[2] > avg_rows[3]){
+        current_quad = 2;
+      } else if(avg_rows[1] > avg_rows[2] && avg_rows[1] > avg_rows[3]){
+        current_quad = 1;
+      } else if(avg_rows[0] > avg_rows[1] && avg_rows[0] > avg_rows[2] && avg_rows[0] > avg_rows[3]){
+        current_quad = 0;
       }
 
       time_tstart = time;
@@ -853,7 +865,6 @@ void thermalMode() {
   // played last chord, start over!
   if(tplaying>9){
     tplaying=0;
-    // current_quad=5;
   }
 
   handleTNotes();
