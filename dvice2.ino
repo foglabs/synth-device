@@ -738,7 +738,7 @@ void handleCNotes() {
 }
 
 void changeOct(uint8_t top, uint8_t bottom){
-  if( (time - time_oct) >= 1000){
+  if( (time - time_oct) >= 600){
 
     if( top == 4 ){
       // if up (0-3)
