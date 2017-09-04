@@ -687,6 +687,7 @@ void handleCNotes() {
   }
 
   // change octave? -> exit befor eplaying notes
+  displayOct();
   if( top==4 || bottom==4 ){
     changeOct(top,bottom);
     return;
@@ -758,8 +759,6 @@ void changeOct(uint8_t top, uint8_t bottom){
       }
     } 
   }
-
-  displayOct();
 }
 
 void displayOct(){
@@ -1017,6 +1016,7 @@ void handleMNotes() {
   }
 
   // change octave? -> exit befor eplaying notes
+  displayOct();
   if( top==4 || bottom==4 ){
     changeOct(top,bottom);
     return;
@@ -1110,6 +1110,7 @@ void handlePNotes() {
   }
 
   // change octave? -> exit befor eplaying notes
+  displayOct();
   if( top==4 || bottom==4 ){
     changeOct(top,bottom);
     return;
