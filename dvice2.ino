@@ -719,6 +719,7 @@ void handleCNotes() {
       // if up (0-3)
       if(octave<16){
         octave += 1;
+        octchanged = true;
         time_oct = time;
       }
 
@@ -726,10 +727,15 @@ void handleCNotes() {
       // if down (4-7)
       if(octave>0){
         octave -= 1;
+        octchanged = true;
         time_oct = time;
       }
-    }
+    } 
     
+    if(octchanged){
+      displayOct();
+    }
+
   }
   
     
@@ -739,6 +745,22 @@ void handleCNotes() {
   // !!!might have to wait to retrigger held note if constant retrig sounds bad
     // should be unnecessary because note will play out on its own
     // killMNote();    
+
+}
+
+changeOct(){
+  
+}
+
+void displayOct()
+{
+  // octave display timer
+
+  if( (time - time_octdisp) >= 1200 ){
+    octchanged = false;
+    time_octdisp = time;
+  }
+
 
 }
 
@@ -1231,6 +1253,8 @@ void lightRGB(){
       }
     }
 
+  } else if(octchanged) {
+    
   } else {
 
     // thermal
