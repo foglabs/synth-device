@@ -97,7 +97,7 @@ unsigned long time_modhold;
 unsigned long time_rgb;
 unsigned long time_thr;
 unsigned long time_gre;
-unsigned long time_not;
+// unsigned long time_not;
 // unsigned long time_kno;
 unsigned long time_tstart;
 unsigned long time_tplay;
@@ -146,7 +146,7 @@ void setup() {
   pinMode( REDPIN, OUTPUT );
   pinMode( BLUEPIN, OUTPUT );
 
-  pinMode( KNOBPIN, INPUT );
+  // pinMode( KNOBPIN, INPUT );
   // mode
 
   // RGB object
@@ -352,7 +352,11 @@ void doMod(){
 
 //   if( (time-time_kno)>=80 ){
 //     knob = analogRead(KNOBPIN);
-//     Serial.println(knob);
+//     // Serial.println(knob);
+
+//     if(knob>500){
+//       digitalWrite(BLUEPIN, HIGH);
+//     }
 //     time_kno = time;
 
 //     if(abs(lastknob-knob)>= 40){
@@ -379,10 +383,6 @@ bool checkMode(){
   }
 
   if(digitalRead(MODEPIN) == LOW){
-
-    digitalWrite(REDPIN, HIGH);
-    digitalWrite(BLUEPIN, HIGH);
-    digitalWrite(GREENPIN, HIGH);
 
     if( (time - time_mod) >= 360 ){
 
@@ -993,13 +993,13 @@ void handleMNotes() {
 
   if(voicenotes[0]==new_note){
     // Serial.println("got keepplaying");
-    if( ( time - voicetimes[0] ) >= 60 ){
+    if( ( time - voicetimes[0] ) >= 6000 ){
 
       // retrigger
       playMNote(new_note);
     }
 
-  } else if( (top+bottom) == 1 && new_note >= 0) {
+  } else if(  new_note >= 0) { //(top+bottom) == 1 &&
 
     // is dis wrong??
     // voicenotes[0] = new_note;
@@ -1016,7 +1016,7 @@ void handleMNotes() {
   }
 
   // change octave
-  if( (time - time_oct) >= 1000){
+  if( (time - time_oct) >= 600){
 
     if( top == 4 ){
       // if up (0-3)
@@ -1034,14 +1034,6 @@ void handleMNotes() {
     }
     
   }
-  
-    
-  // if( (time-time_not) >= 3600 ){
-  //   cleanUpNotes();
-  // }
-  // !!!might have to wait to retrigger held note if constant retrig sounds bad
-    // should be unnecessary because note will play out on its own
-    // killMNote();    
 
 }
 
