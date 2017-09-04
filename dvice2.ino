@@ -90,10 +90,13 @@ uint8_t octave=12;
 int mode=MONOMODE;
 
 unsigned long time;
+
 unsigned long time_oct;
+unsigned long time_octdisp;
+
 unsigned long time_mod;
 unsigned long time_moddisp;
-unsigned long time_modhold;
+
 unsigned long time_rgb;
 unsigned long time_thr;
 unsigned long time_gre;
@@ -101,7 +104,7 @@ unsigned long time_gre;
 // unsigned long time_kno;
 unsigned long time_tstart;
 unsigned long time_tplay;
-unsigned long time_domod;
+// unsigned long time_domod;
 
 int modeblink = 100;
 
@@ -109,6 +112,7 @@ float thermal[AMG88xx_PIXEL_ARRAY_SIZE];
 
 bool holdingmode = false;
 bool modechanged = false;
+bool octchanged = false;
 bool first = true;
 bool blink = true;
 
@@ -171,10 +175,11 @@ void setup() {
   time = millis();
   // timeouts
   time_oct = time;
+  time_octdisp = time;
   time_mod = time;
   time_moddisp = time;
 
-  time_domod = time;
+  // time_domod = time;
 
   time_rgb = time;
   time_thr = time;
@@ -681,6 +686,12 @@ void handleCNotes() {
     }
   }
 
+  // change octave? -> exit befor eplaying notes
+  if( top==4 || bottom==4 ){
+    changeOct(top,bottom);
+    return;
+  }
+
   if(voicenotes[0]==new_note){
     // Serial.println("got keepplaying");
     if( ( time - voicetimes[0] ) >= 790 ){
@@ -713,30 +724,7 @@ void handleCNotes() {
   }
 
   // change octave
-  if( (time - time_oct) >= 1000){
-
-    if( top == 4 ){
-      // if up (0-3)
-      if(octave<16){
-        octave += 1;
-        octchanged = true;
-        time_oct = time;
-      }
-
-    } else if(bottom == 4 ) {
-      // if down (4-7)
-      if(octave>0){
-        octave -= 1;
-        octchanged = true;
-        time_oct = time;
-      }
-    } 
-    
-    if(octchanged){
-      displayOct();
-    }
-
-  }
+  // changeOct( top, bottom );
   
     
   // if( (time-time_not) >= 3600 ){
@@ -748,20 +736,38 @@ void handleCNotes() {
 
 }
 
-changeOct(){
-  
-}
+void changeOct(uint8_t top, uint8_t bottom){
+  if( (time - time_oct) >= 1000){
 
-void displayOct()
-{
-  // octave display timer
+    if( top == 4 ){
+      // if up (0-3)
+      if(octave<16){
+        octave += 1;
+        octchanged = true;
+        time_octdisp = time;
+        time_oct = time;
+      }
 
-  if( (time - time_octdisp) >= 1200 ){
-    octchanged = false;
-    time_octdisp = time;
+    } else if(bottom == 4 ) {
+      // if down (4-7)
+      if(octave>0){
+        octave -= 1;
+        octchanged = true;
+        time_octdisp = time;
+        time_oct = time;
+      }
+    } 
   }
 
+  displayOct();
+}
 
+void displayOct(){
+  // octave display timer
+
+  if( octchanged && (time - time_octdisp) >= 1200 ){
+    octchanged = false;
+  }
 }
 
 void thermalMode() {
@@ -933,7 +939,7 @@ void handleTNotes(){
      
       } 
     }
-  }
+  } 
 
 }
 
@@ -1010,6 +1016,12 @@ void handleMNotes() {
     }
   }
 
+  // change octave? -> exit befor eplaying notes
+  if( top==4 || bottom==4 ){
+    changeOct(top,bottom);
+    return;
+  }
+
   // Serial.println(voicetimes[0]);
   // Serial.println(time);
 
@@ -1038,25 +1050,7 @@ void handleMNotes() {
   }
 
   // change octave
-  if( (time - time_oct) >= 600){
-
-    if( top == 4 ){
-      // if up (0-3)
-      if(octave<16){
-        octave += 1;
-        time_oct = time;
-      }
-
-    } else if(bottom == 4 ) {
-      // if down (4-7)
-      if(octave>0){
-        octave -= 1;
-        time_oct = time;
-      }
-    }
-    
-  }
-
+  // changeOct( top, bottom );
 }
 
 void playMNote(int note) {
@@ -1116,25 +1110,9 @@ void handlePNotes() {
   }
 
   // change octave? -> exit befor eplaying notes
-  if( (time - time_oct) >= 1000){
-
-    if( top == 4 ){
-      // if up (0-3)
-      if(octave<16){
-        octave += 1;
-        time_oct = time;
-      }
-
-      return;
-    } else if(bottom == 4 ) {
-      // if down (4-7)
-      if(octave>0){
-        octave -= 1;
-        time_oct = time;
-      }
-
-      return; 
-    }
+  if( top==4 || bottom==4 ){
+    changeOct(top,bottom);
+    return;
   }
 
   // Serial.print("NUM STAGED: ");
@@ -1254,7 +1232,26 @@ void lightRGB(){
     }
 
   } else if(octchanged) {
-    
+    uint8_t pixcount = 0;
+    uint32_t on = 0xFF00FF;
+    uint32_t off = 0x0000FF;
+    bool swap = false;
+
+    for(int q=0; q<64; q++){
+
+      if(pixcount<(octave*2)){
+        if(swap){
+          rgbsquare.setPixelColor(q, on); 
+        } else {
+          rgbsquare.setPixelColor(q, off); 
+        }
+
+        pixcount += 1;
+        swap = !swap;
+      } else {
+        rgbsquare.setPixelColor(q, off); 
+      }
+    }    
   } else {
 
     // thermal
