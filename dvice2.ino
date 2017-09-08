@@ -397,61 +397,70 @@ bool checkMode(){
 
 
     // showmode///////////////
-    if(startshowmode==false){
-      startshowmode = true;
-      time_showmode = time;
-    }
-
-    if( startshowmode == true && (time-time_showmode >= 5000) ){
-      is_showmode = !is_showmode;
-      startshowmode = false;
-    }
-    // ////////////////
-
-    if( (time - time_mod) >= 360 ){
-
-      if(is_showmode){
-        showmode++;
-
-        if(showmode>9){
-          showmode=0;
-        }
-
-        if(showmode == 0){
-          mode = 3;
-        } else if(showmode == 1){
-          mode = 6;
-        } else if(showmode == 2){
-          mode = 2;
-        } else if(showmode == 3){
-          mode = 14;
-        } else if(showmode == 4){
-          mode = 8;
-        } else if(showmode == 5){
-          mode = 10;
-        } else if(showmode == 6){
-          mode = 5;
-        } else if(showmode == 7){
-          mode = 12;
-        } else if(showmode == 8){
-          mode = 15;
-        } else if(showmode == 9){
-          mode = 4;
-        }
-      } else {
-        mode++;
+    if(arcades[7] == LOW){
+      if(startshowmode==false){
+        startshowmode = true;
+        time_showmode = time;
       }
 
-      if(mode>16){
-        mode = MONOMODE;
+      if( startshowmode == true && (time-time_showmode >= 5000) ){
+        is_showmode = !is_showmode;
+        startshowmode = false;
       }
 
-      time_mod = time;
       time_moddisp = time;
       moddisplay = true;
-      time_mod = time;
-      return true;
+
+      return false;
+    } else {
+      if( (time - time_mod) >= 360 ){
+
+        if(is_showmode){
+          showmode++;
+
+          if(showmode>9){
+            showmode=0;
+          }
+
+          if(showmode == 0){
+            mode = 3;
+          } else if(showmode == 1){
+            mode = 6;
+          } else if(showmode == 2){
+            mode = 2;
+          } else if(showmode == 3){
+            mode = 14;
+          } else if(showmode == 4){
+            mode = 8;
+          } else if(showmode == 5){
+            mode = 10;
+          } else if(showmode == 6){
+            mode = 5;
+          } else if(showmode == 7){
+            mode = 12;
+          } else if(showmode == 8){
+            mode = 15;
+          } else if(showmode == 9){
+            mode = 4;
+          }
+        } else {
+          mode++;
+        }
+
+        if(mode>16){
+          mode = MONOMODE;
+        }
+
+        time_mod = time;
+        time_moddisp = time;
+        moddisplay = true;
+        return true;
+      }
     }
+    
+    // ////////////////
+
+    
   } else {
 
     startshowmode = false;
@@ -1283,8 +1292,8 @@ void lightRGB(){
     // SHOWMOOOOOODE/////
 
     if(is_showmode){
-      on = 0xCC47DD;
-      uint32_t off = 0x220000;
+      on = 0x2211AA;
+      off = 0x00CC33;
       currentmode = showmode;
     } else {
       currentmode = mode;
@@ -1292,6 +1301,17 @@ void lightRGB(){
     //////
 
     for(int q=0; q<64; q++){
+
+      // if(q>=48 && startshowmode) {
+      //   // show showmode progress
+
+      //   float show = ((time-time_showmode)/5000) * 16;
+      //   if( q < (48+show)  ){
+          
+      //     rgbsquare.setPixelColor(q, 0x000099);
+      //   } else {
+      //     rgbsquare.setPixelColor(q, off);
+      //   }
 
       if(pixcount<(currentmode*2)){
         if(swap){
@@ -1302,16 +1322,6 @@ void lightRGB(){
 
         pixcount += 1;
         swap = !swap;
-      } else if(startshowmode) {
-        if(q>=48){
-          // show showmode progress
-          uint8_t factor = (time-time_showmode)/5000;
-          if( (floor(factor*16)+48) < q){
-            rgbsquare.setPixelColor(q, off); 
-          } else {
-            rgbsquare.setPixelColor(q, 0x00DD00); 
-          }
-        }
       } else {
         rgbsquare.setPixelColor(q, off); 
       }
