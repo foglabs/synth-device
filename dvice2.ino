@@ -424,24 +424,34 @@ bool checkMode(){
 
           if(showmode == 0){
             mode = 3;
+            octave = 7;
           } else if(showmode == 1){
             mode = 6;
+            octave = 5;
           } else if(showmode == 2){
             mode = 2;
+            octave = 7;
           } else if(showmode == 3){
             mode = 14;
+            octave = 7;
           } else if(showmode == 4){
             mode = 8;
+            octave = 9;
           } else if(showmode == 5){
             mode = 10;
+            octave = 9;
           } else if(showmode == 6){
             mode = 5;
+            octave = 7;
           } else if(showmode == 7){
             mode = 12;
+            octave = 9;
           } else if(showmode == 8){
             mode = 15;
+            octave = 7;
           } else if(showmode == 9){
             mode = 4;
+            octave = 8;
           }
         } else {
           mode++;
