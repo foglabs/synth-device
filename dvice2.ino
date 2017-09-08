@@ -405,6 +405,13 @@ bool checkMode(){
 
       if( startshowmode == true && (time-time_showmode >= 5000) ){
         is_showmode = !is_showmode;
+
+        if(is_showmode){
+          mode = 3;
+        } else {
+          mode = 0;   
+        }
+        
         startshowmode = false;
       }
 
