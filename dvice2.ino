@@ -50,11 +50,10 @@ uint8_t thermchords [4][12] = {
                                 // {25,28,30,  28,33,36,  33,38,43,  28,30,28},
 
                                 // {24,28,31,  28,32,35,  29,33,36,  21,24,28}
-                                {60, 64, 67, 64, 68, 71, 65, 69, 72, 57, 60, 64},
-                                {59, 63, 66, 62, 66, 69, 64, 67, 71, 59, 62, 66},
-                                {61, 64, 66, 64, 69, 72, 69, 74, 79, 64, 66, 64},
-                                {64, 69, 74, 68, 73, 77, 77, 84, 89, 71, 76, 81}
-
+                                {48, 52, 55, 52, 56, 59, 53, 57, 60, 45, 48, 52},
+                                {47, 51, 54, 50, 54, 57, 52, 55, 59, 47, 50, 54},
+                                {49, 52, 54, 52, 57, 60, 57, 62, 67, 52, 54, 52},
+                                {52, 57, 62, 56, 61, 65, 65, 72, 77, 59, 64, 69}
                               };
 
 // current quad were playing from
@@ -89,6 +88,11 @@ int voicenotes [4];
 
 uint8_t octave=12;
 int mode=MONOMODE;
+
+int showmode = MONOMODE;
+bool is_showmode = false;
+bool startshowmode = false;
+unsigned long time_showmode;
 
 unsigned long time;
 
@@ -180,6 +184,7 @@ void setup() {
   time_mod = time;
   time_moddisp = time;
 
+  time_showmode = time;
   // time_domod = time;
 
   time_rgb = time;
@@ -296,9 +301,9 @@ void loop() {
       soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
     } else if(mode == THERMODE){
       soul.setupVoice(0,SINE,60,ENVELOPE0,95,64);
-      soul.setupVoice(1,SAW,60,ENVELOPE2,93,64);
-      soul.setupVoice(2,SINE,60,ENVELOPE0,83,64);
-      soul.setupVoice(3,SINE,60,ENVELOPE0,90,64);
+      soul.setupVoice(1,TRIANGLE,60,ENVELOPE2,93,64);
+      soul.setupVoice(2,SINE,60,ENVELOPE0,97,64);
+      soul.setupVoice(3,SINE,60,ENVELOPE0,60,64);
     } else if(mode == CHORMODE){
       soul.setupVoice(0,SINE,60,ENVELOPE0,95,64);
       soul.setupVoice(1,SAW,60,ENVELOPE2,93,64);
@@ -390,9 +395,52 @@ bool checkMode(){
 
   if(digitalRead(MODEPIN) == LOW){
 
+
+    // showmode///////////////
+    if(startshowmode==false){
+      startshowmode = true;
+      time_showmode = time;
+    }
+
+    if( startshowmode == true && (time-time_showmode >= 5000) ){
+      is_showmode = !is_showmode;
+      startshowmode = false;
+    }
+    // ////////////////
+
     if( (time - time_mod) >= 360 ){
 
-      mode++;
+      if(is_showmode){
+        showmode++;
+
+        if(showmode>9){
+          showmode=0;
+        }
+
+        if(showmode == 0){
+          mode = 3;
+        } else if(showmode == 1){
+          mode = 6;
+        } else if(showmode == 2){
+          mode = 2;
+        } else if(showmode == 3){
+          mode = 14;
+        } else if(showmode == 4){
+          mode = 8;
+        } else if(showmode == 5){
+          mode = 10;
+        } else if(showmode == 6){
+          mode = 5;
+        } else if(showmode == 7){
+          mode = 12;
+        } else if(showmode == 8){
+          mode = 15;
+        } else if(showmode == 9){
+          mode = 4;
+        }
+      } else {
+        mode++;
+      }
 
       if(mode>16){
         mode = MONOMODE;
@@ -405,6 +453,8 @@ bool checkMode(){
       return true;
     }
   } else {
+
+    startshowmode = false;
     return false;
   }
 }
@@ -916,13 +966,20 @@ void thermalMode() {
 
 void handleTNotes(){
   int new_note = -1;
-
+  uint8_t top = 0;
+  uint8_t bottom = 0;
   for(uint8_t i=0; i<8; i++){
 
     // low is on baby
     if(arcades[i] == LOW){
       new_note = inputToNote(i);
       // numheld
+
+      if(i<4){
+        top++;
+      } else {
+        bottom++;
+      }
 
       if(voicenotes[0]==new_note){
         // Serial.println("got keepplaying");
@@ -941,6 +998,11 @@ void handleTNotes(){
     }
   } 
 
+  // change octave? -> 
+  displayOct();
+  if( top==4 || bottom==4 ){
+    changeOct(top,bottom);
+  }
 }
 
 void playTNote(int note){
@@ -1216,10 +1278,22 @@ void lightRGB(){
     uint32_t on = 0xFFFFFF;
     uint32_t off = 0x000000;
     bool swap = false;
+    uint8_t currentmode=mode;
+
+    // SHOWMOOOOOODE/////
+
+    if(is_showmode){
+      on = 0xCC47DD;
+      uint32_t off = 0x220000;
+      currentmode = showmode;
+    } else {
+      currentmode = mode;
+    }
+    //////
 
     for(int q=0; q<64; q++){
 
-      if(pixcount<(mode*2)){
+      if(pixcount<(currentmode*2)){
         if(swap){
           rgbsquare.setPixelColor(q, on); 
         } else {
@@ -1228,6 +1302,16 @@ void lightRGB(){
 
         pixcount += 1;
         swap = !swap;
+      } else if(startshowmode) {
+        if(q>=48){
+          // show showmode progress
+          uint8_t factor = (time-time_showmode)/5000;
+          if( (floor(factor*16)+48) < q){
+            rgbsquare.setPixelColor(q, off); 
+          } else {
+            rgbsquare.setPixelColor(q, 0x00DD00); 
+          }
+        }
       } else {
         rgbsquare.setPixelColor(q, off); 
       }
