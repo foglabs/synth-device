@@ -268,7 +268,7 @@ void loop() {
       soul.setupVoice(1,SINE,60,ENVELOPE2,80,64);
       soul.setupVoice(2,TRIANGLE,60,ENVELOPE3,65,64);
       soul.setupVoice(3,SINE,60,ENVELOPE1,70,64);
-      Serial.println("Set Waves Poly");
+      // Serial.println("Set Waves Poly");
     } else if(mode == 9){
       soul.setupVoice(0,SQUARE,60,ENVELOPE0,60,64);
       soul.setupVoice(1,SQUARE,60,ENVELOPE0,80,64);
@@ -389,7 +389,15 @@ void doMod(){
 ////////////////// CHECKS  /////////////////
 bool checkMode(){
 
-  if( moddisplay && (time-time_moddisp) >= 2000 ){
+  int modetimer;
+
+  if(startshowmode){
+    modetimer = 5000;
+  } else {
+    modetimer = 2000;
+  }
+
+  if( moddisplay && (time-time_moddisp) >= modetimer ){
     moddisplay = false;
   }
 
@@ -401,6 +409,9 @@ bool checkMode(){
       if(startshowmode==false){
         startshowmode = true;
         time_showmode = time;
+
+        time_moddisp = time;
+        moddisplay = true;
       }
 
       if( startshowmode == true && (time-time_showmode >= 5000) ){
@@ -408,15 +419,14 @@ bool checkMode(){
 
         if(is_showmode){
           mode = 3;
+          octave = 7;
         } else {
           mode = 0;   
         }
-        
-        startshowmode = false;
-      }
 
-      time_moddisp = time;
-      moddisplay = true;
+        startshowmode = false;
+        return true;
+      }
 
       return false;
     } else {
@@ -1319,18 +1329,25 @@ void lightRGB(){
 
     for(int q=0; q<64; q++){
 
-      // if(q>=48 && startshowmode) {
-      //   // show showmode progress
+      if(startshowmode) {
+        // show showmode progress
 
-      //   float show = ((time-time_showmode)/5000) * 16;
-      //   if( q < (48+show)  ){
+        float check = time-time_showmode;
+        uint8_t show = floor((check/5000) * 64);
+
+        if( q < show ){
           
-      //     rgbsquare.setPixelColor(q, 0x000099);
-      //   } else {
-      //     rgbsquare.setPixelColor(q, off);
-      //   }
+          uint8_t r = rand() % 255;
+          uint8_t g = rand() % 255;
+          uint8_t b = rand() % 255;
 
-      if(pixcount<(currentmode*2)){
+          // return ;
+
+          rgbsquare.setPixelColor(q, (r << 16 | b | g << 8) );
+        } else {
+          rgbsquare.setPixelColor(q, off);
+        }
+      } else if(pixcount<(currentmode*2)){
         if(swap){
           rgbsquare.setPixelColor(q, on); 
         } else {
@@ -1377,7 +1394,8 @@ void lightRGB(){
       }
 
       // Serial.println("HEAR HERE ");
-      // Serial.println(rowbegin+incre);
+      // Serial.println(rowbegin);
+      // Serial.println(incre);
 
       // invert lr because whoopsie!
       color = pixelToColor(thermal[ rowbegin+incre ]);
