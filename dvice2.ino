@@ -276,8 +276,8 @@ void loop() {
       soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
     } else if(mode == 10){
       soul.setupVoice(0,SAW,60,ENVELOPE3,70,64);
-      soul.setupVoice(1,SAW,60,ENVELOPE2,60,64);
-      soul.setupVoice(2,SAW,60,ENVELOPE1,60,64);
+      soul.setupVoice(1,SAW,60,ENVELOPE2,80,64);
+      soul.setupVoice(2,SAW,60,ENVELOPE1,80,64);
       soul.setupVoice(3,SAW,60,ENVELOPE1,85,64);
     } else if(mode == 11){
       soul.setupVoice(0,SAW,60,ENVELOPE3,65,64);
@@ -456,7 +456,7 @@ bool checkMode(){
             octave = 9;
           } else if(showmode == 5){
             mode = 10;
-            octave = 9;
+            octave = 10;
           } else if(showmode == 6){
             mode = 5;
             octave = 7;
