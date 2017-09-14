@@ -50,16 +50,18 @@ uint8_t thermchords [4][12] = {
                                 // {25,28,30,  28,33,36,  33,38,43,  28,30,28},
 
                                 // {24,28,31,  28,32,35,  29,33,36,  21,24,28}
-                                {48, 52, 55, 52, 56, 59, 53, 57, 60, 45, 48, 52},
-                                {47, 51, 54, 50, 54, 57, 52, 55, 59, 47, 50, 54},
-                                {49, 52, 54, 52, 57, 60, 57, 62, 67, 52, 54, 52},
-                                {52, 57, 62, 56, 61, 65, 65, 72, 77, 59, 64, 69}
+                                {60, 64, 67, 64, 68, 71, 65, 69, 72, 57, 60, 64},
+                                {59, 63, 66, 62, 66, 69, 64, 67, 71, 59, 62, 66},
+                                {61, 64, 66, 64, 69, 72, 69, 74, 79, 64, 66, 64},
+                                {64, 69, 74, 68, 73, 77, 77, 84, 89, 71, 76, 81}
                               };
 
 // current quad were playing from
 uint8_t current_quad=0;
 // index of  thermal note currently playing
 uint8_t tplaying=0;
+
+uint8_t transpose=0;
 
 // RGB
 Adafruit_DotStar rgbsquare = Adafruit_DotStar(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
@@ -300,10 +302,10 @@ void loop() {
       soul.setupVoice(2,SINE,60,ENVELOPE0,45,64);
       soul.setupVoice(3,SINE,60,ENVELOPE0,80,64);
     } else if(mode == THERMODE){
-      soul.setupVoice(0,SINE,60,ENVELOPE0,95,64);
-      soul.setupVoice(1,TRIANGLE,60,ENVELOPE2,93,64);
-      soul.setupVoice(2,SINE,60,ENVELOPE0,97,64);
-      soul.setupVoice(3,SINE,60,ENVELOPE0,60,64);
+      soul.setupVoice(0,SAW,60,ENVELOPE0,100,64);
+      soul.setupVoice(1,TRIANGLE,60,ENVELOPE2,100,64);
+      soul.setupVoice(2,SINE,60,ENVELOPE0,100,64);
+      soul.setupVoice(3,SQUARE,60,ENVELOPE0,100,64);
     } else if(mode == CHORMODE){
       soul.setupVoice(0,SINE,60,ENVELOPE0,95,64);
       soul.setupVoice(1,SAW,60,ENVELOPE2,93,64);
@@ -911,9 +913,9 @@ void thermalMode() {
   // calc averages
   avg_global = avg_global/64;
 
-  if(highest > 25){
+  if(highest > 28.2){
     // interupt
-    if( (time-time_tstart) >= 1300 ){
+    if( (time-time_tstart) >= 100 ){
     
       /////////// Quadrants dont work that well :(
       // avg_quad[0] = avg_quad[0]/16;
@@ -951,7 +953,7 @@ void thermalMode() {
       }
 
       // little less than human skin
-      if( avg_rows[3] > 28){
+      if( avg_rows[3] > 28.2){
         current_quad = 3;
       } else if(avg_rows[2] > avg_rows[3]){
         current_quad = 2;
@@ -968,7 +970,15 @@ void thermalMode() {
   }
 
   // play da notes
-  if( current_quad<5 && (time-time_tplay) >= 800 ){
+  if( current_quad<5 && (time-time_tplay) >= 720 ){
+
+    // transpose
+    for(uint8_t x=0; x<8; x++){
+      // if held, transpose that many
+      if(arcades[x] == LOW){
+        transpose = x;
+      }
+    }
 
     playChord(current_quad, tplaying);
     tplaying += 3;
@@ -981,7 +991,7 @@ void thermalMode() {
     tplaying=0;
   }
 
-  handleTNotes();
+  // handleTNotes();
 
   // light lights
   if( (time-time_rgb) >= 60 ){
@@ -1000,51 +1010,51 @@ void thermalMode() {
   // play relevant flourish notes
 }
 
-void handleTNotes(){
-  int new_note = -1;
-  uint8_t top = 0;
-  uint8_t bottom = 0;
-  for(uint8_t i=0; i<8; i++){
+// void handleTNotes(){
+//   int new_note = -1;
+//   uint8_t top = 0;
+//   uint8_t bottom = 0;
+//   for(uint8_t i=0; i<8; i++){
 
-    // low is on baby
-    if(arcades[i] == LOW){
-      new_note = inputToNote(i);
-      // numheld
+//     // low is on baby
+//     if(arcades[i] == LOW){
+//       new_note = inputToNote(i);
+//       // numheld
 
-      if(i<4){
-        top++;
-      } else {
-        bottom++;
-      }
+//       if(i<4){
+//         top++;
+//       } else {
+//         bottom++;
+//       }
 
-      if(voicenotes[0]==new_note){
-        // Serial.println("got keepplaying");
+//       if(voicenotes[0]==new_note){
+//         // Serial.println("got keepplaying");
 
-        if( ( time - voicetimes[0] ) >= 60 ){
-          // retrigger
-          playTNote(new_note);
-          voicetimes[0] = time;
-        }
+//         if( ( time - voicetimes[0] ) >= 60 ){
+//           // retrigger
+//           playTNote(new_note);
+//           voicetimes[0] = time;
+//         }
 
-      } else if( new_note >= 0) {
-        voicenotes[0] = new_note;
-        playTNote(new_note);
+//       } else if( new_note >= 0) {
+//         voicenotes[0] = new_note;
+//         playTNote(new_note);
      
-      } 
-    }
-  } 
+//       } 
+//     }
+//   } 
 
-  // change octave? -> 
-  displayOct();
-  if( top==4 || bottom==4 ){
-    changeOct(top,bottom);
-  }
-}
+//   // change octave? -> 
+//   displayOct();
+//   if( top==4 || bottom==4 ){
+//     changeOct(top,bottom);
+//   }
+// }
 
-void playTNote(int note){
-  // are we the last. living voice.
-  soul.mTrigger(3,note);
-}
+// void playTNote(int note){
+//   // are we the last. living voice.
+//   soul.mTrigger(3,note);
+// }
 
 //////////// INPUT RELATED FUNCTIONS /////////
 uint8_t getArcade(uint8_t pin) {
@@ -1165,7 +1175,12 @@ void playMNote(int note) {
 void playChord(uint8_t set, uint8_t chordstart) {
   for(uint8_t i=0; i<3; i++){
     // play each tone of note
-    soul.mTrigger(i, thermchords[ set ][ chordstart+i ]);
+    soul.mTrigger(i, (thermchords[ set ][ chordstart+i ]) + transpose );
+
+    // also use tnote voice for root
+    if(i==0){
+      soul.mTrigger(3, (thermchords[ set ][ chordstart+i ]) + transpose );      
+    }
   }
 }
 
