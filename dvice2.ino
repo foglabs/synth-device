@@ -218,7 +218,7 @@ void loop() {
   // // SETUP
   // // voice, wave, pitchm, envelope, length, mod
 
-  // setup my shit breh
+  // setup my modes
   if( (modechanged || first) ){
 
     if(!first){
@@ -317,12 +317,13 @@ void loop() {
     first = false;
   }
 
+  // mod parameter doesn't work very well
   // if( time-time_domod >= 200 ){
   //   doMod();
   //   time_domod=time;
   // }
   
-  // // do my mode boy
+  // // do my mode
   switch(mode){
     case 0:
     case 1:
@@ -1288,7 +1289,7 @@ void playPNote(int note, int voice) {
 
 //////////// LIGHTS /////////
 uint32_t pixelToColor(float temp){ 
-  // 25-40 in a hot ass room
+  // 25-40 in a hot room
 
 // def rgb(minimum, maximum, value):
 //     minimum, maximum = float(minimum), float(maximum)
